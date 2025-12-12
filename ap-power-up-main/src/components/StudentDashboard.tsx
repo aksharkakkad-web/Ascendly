@@ -1025,36 +1025,36 @@ export function StudentDashboard() {
     <div className="min-h-screen bg-background">
       {/* Compact Header */}
       <header className="gradient-secondary text-secondary-foreground">
-        <div className="container mx-auto px-6 py-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-secondary-foreground/20 flex items-center justify-center">
-                <GraduationCap className="w-6 h-6" />
+        <div className="container mx-auto px-12 py-5">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-6 flex-shrink-0">
+              <div className="w-14 h-14 rounded-xl bg-secondary-foreground/20 flex items-center justify-center">
+                <GraduationCap className="w-7 h-7" />
               </div>
               <div>
-                <h1 className="font-bold text-xl">{getDisplayName(user)}</h1>
+                <h1 className="font-bold text-2xl md:text-3xl">{getDisplayName(user)}</h1>
               </div>
             </div>
             
             {/* Quick Stats in Header */}
-            <div className="hidden sm:flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <Star className="w-5 h-5" />
-                <span className="font-semibold text-base">{getTotalScore(user)} pts</span>
+            <div className="hidden sm:flex items-center gap-10 lg:gap-12 xl:gap-16 flex-1 justify-center mx-8 lg:mx-12">
+              <div className="flex items-center gap-4">
+                <Star className="w-7 h-7 md:w-8 md:h-8" />
+                <span className="font-bold text-2xl md:text-3xl">{getTotalScore(user)} pts</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Flame className="w-5 h-5" />
-                <span className="font-semibold text-base">{user.streak} day</span>
+              <div className="flex items-center gap-4">
+                <Flame className="w-7 h-7 md:w-8 md:h-8" />
+                <span className="font-bold text-2xl md:text-3xl">{user.streak} day</span>
               </div>
               {showRank && (
-              <div className="flex items-center gap-2">
-                <Trophy className="w-4 h-4" />
-                <span className="font-semibold">{getBestRank()}</span>
+              <div className="flex items-center gap-4">
+                <Trophy className="w-7 h-7 md:w-8 md:h-8" />
+                <span className="font-bold text-2xl md:text-3xl">{getBestRank()}</span>
                 </div>
               )}
               {/* Rank Toggle */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary-foreground/10">
-                <Trophy className="w-4 h-4" />
+              <div className="flex items-center gap-4 px-5 py-3 rounded-lg bg-secondary-foreground/10">
+                <Trophy className="w-7 h-7 md:w-8 md:h-8" />
                 <Switch
                   checked={showRank}
                   onCheckedChange={(checked) => {
@@ -1062,37 +1062,37 @@ export function StudentDashboard() {
                     updateProfile({ showRank: checked });
                     refreshUser();
                   }}
-                  className="scale-75"
+                  className="scale-110"
                 />
-                <span className="text-xs font-medium">Rank</span>
+                <span className="text-lg md:text-xl font-bold">Rank</span>
               </div>
             </div>
             
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-secondary-foreground hover:bg-secondary-foreground/10">
-              <LogOut className="w-4 h-4 sm:mr-2" />
+            <Button variant="ghost" size="lg" onClick={handleLogout} className="text-secondary-foreground hover:bg-secondary-foreground/10 h-14 text-xl md:text-2xl font-bold px-6 flex-shrink-0">
+              <LogOut className="w-8 h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 sm:mr-3" />
               <span className="hidden sm:inline">Logout</span>
             </Button>
           </div>
           
           {/* Mobile Stats */}
-          <div className="flex sm:hidden items-center justify-center gap-4 mt-3 pt-3 border-t border-secondary-foreground/20">
-            <div className="flex items-center gap-1.5 text-sm">
-              <Star className="w-4 h-4" />
-              <span className="font-semibold">{getTotalScore(user)}</span>
+          <div className="flex sm:hidden items-center justify-center gap-6 mt-4 pt-4 border-t border-secondary-foreground/20">
+            <div className="flex items-center gap-3 text-lg">
+              <Star className="w-6 h-6" />
+              <span className="font-bold">{getTotalScore(user)}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-sm">
-              <Flame className="w-4 h-4" />
-              <span className="font-semibold">{user.streak}</span>
+            <div className="flex items-center gap-3 text-lg">
+              <Flame className="w-6 h-6" />
+              <span className="font-bold">{user.streak}</span>
             </div>
             {showRank && (
-            <div className="flex items-center gap-1.5 text-sm">
-              <Trophy className="w-4 h-4" />
-              <span className="font-semibold">{getBestRank()}</span>
+            <div className="flex items-center gap-3 text-lg">
+              <Trophy className="w-6 h-6" />
+              <span className="font-bold">{getBestRank()}</span>
               </div>
             )}
             {/* Mobile Rank Toggle */}
-            <div className="flex items-center gap-1.5 text-sm px-2 py-1 rounded bg-secondary-foreground/10">
-              <Trophy className="w-3 h-3" />
+            <div className="flex items-center gap-3 text-lg px-4 py-2 rounded bg-secondary-foreground/10">
+              <Trophy className="w-5 h-5" />
               <Switch
                 checked={showRank}
                 onCheckedChange={(checked) => {
@@ -1100,34 +1100,34 @@ export function StudentDashboard() {
                   updateProfile({ showRank: checked });
                   refreshUser();
                 }}
-                className="scale-75"
+                className="scale-100"
               />
             </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto py-6 px-2 max-w-[98vw]">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 h-16">
-            <TabsTrigger value="practice" className="text-base md:text-lg font-semibold">
-              <Play className="w-5 h-5 md:w-6 md:h-6 mr-2" />
+      <main className="container mx-auto py-4 px-2 max-w-[98vw]">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-5 h-20">
+            <TabsTrigger value="practice" className="text-lg md:text-xl font-bold">
+              <Play className="w-6 h-6 md:w-7 md:h-7 mr-2" />
               Practice
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="text-base md:text-lg font-semibold">
-              <Grid3X3 className="w-5 h-5 md:w-6 md:h-6 mr-2" />
+            <TabsTrigger value="analytics" className="text-lg md:text-xl font-bold">
+              <Grid3X3 className="w-6 h-6 md:w-7 md:h-7 mr-2" />
               Analytics
             </TabsTrigger>
-            <TabsTrigger value="leaderboard" className="text-base md:text-lg font-semibold">
-              <Trophy className="w-5 h-5 md:w-6 md:h-6 mr-2" />
+            <TabsTrigger value="leaderboard" className="text-lg md:text-xl font-bold">
+              <Trophy className="w-6 h-6 md:w-7 md:h-7 mr-2" />
               Leaderboard
             </TabsTrigger>
-            <TabsTrigger value="classes" className="text-base md:text-lg font-semibold">
-              <BookOpen className="w-5 h-5 md:w-6 md:h-6 mr-2" />
+            <TabsTrigger value="classes" className="text-lg md:text-xl font-bold">
+              <BookOpen className="w-6 h-6 md:w-7 md:h-7 mr-2" />
               Classes
             </TabsTrigger>
-            <TabsTrigger value="settings" className="text-base md:text-lg font-semibold">
-              <Settings className="w-5 h-5 md:w-6 md:h-6 mr-2" />
+            <TabsTrigger value="settings" className="text-lg md:text-xl font-bold">
+              <Settings className="w-6 h-6 md:w-7 md:h-7 mr-2" />
               Settings
             </TabsTrigger>
           </TabsList>
@@ -1135,34 +1135,34 @@ export function StudentDashboard() {
           {/* Practice Tab */}
           <TabsContent value="practice" className="space-y-4 animate-fade-in">
             <Card variant="elevated">
-              <CardHeader className="pb-6 px-8 pt-8">
-                <CardTitle className="flex items-center gap-3 text-2xl md:text-3xl font-bold">
-                  <Play className="w-6 h-6 md:w-7 md:h-7 text-secondary" />
+              <CardHeader className="pb-5 px-8 pt-6">
+                <CardTitle className="flex items-center gap-4 text-3xl md:text-4xl lg:text-5xl font-bold">
+                  <Play className="w-8 h-8 md:w-9 md:h-9 text-secondary" />
                   Start a Quiz
                 </CardTitle>
-                <CardDescription className="text-lg md:text-xl mt-2">Choose a class and unit to practice</CardDescription>
+                <CardDescription className="text-xl md:text-2xl mt-3">Choose a class and unit to practice</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6 px-8 pb-8">
-                <div className="grid sm:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <label className="text-lg font-bold text-foreground">Class</label>
+              <CardContent className="space-y-5 px-8 pb-6">
+                <div className="grid sm:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <label className="text-xl md:text-2xl font-bold text-foreground">Class</label>
                     <Select value={selectedClass} onValueChange={(v) => { setSelectedClass(v); setSelectedUnit(""); }}>
-                      <SelectTrigger className="h-16 text-lg">
+                      <SelectTrigger className="h-20 text-xl">
                         <SelectValue placeholder="Select a class" />
                       </SelectTrigger>
                       <SelectContent>
                         {userClasses.map((className) => (
-                          <SelectItem key={className} value={className} className="text-lg">
+                          <SelectItem key={className} value={className} className="text-xl">
                             {className}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-3">
-                    <label className="text-lg font-bold text-foreground">Unit</label>
+                  <div className="space-y-2">
+                    <label className="text-xl md:text-2xl font-bold text-foreground">Unit</label>
                     <Select value={selectedUnit} onValueChange={setSelectedUnit} disabled={!selectedClass}>
-                      <SelectTrigger className="h-16 text-lg">
+                      <SelectTrigger className="h-20 text-xl">
                         <SelectValue placeholder={selectedClass ? "Select a unit" : "Select class first"} />
                       </SelectTrigger>
                       <SelectContent>
@@ -1171,7 +1171,7 @@ export function StudentDashboard() {
                           const total = unitQuestionCounts[unit];
                           const answered = progress ? progress.answeredQuestions.length : 0;
                           return (
-                            <SelectItem key={unit} value={unit} className="text-lg">
+                            <SelectItem key={unit} value={unit} className="text-xl">
                               {unit}{" "}
                               {total !== undefined
                                 ? `(Questions answered: ${answered}/${total})`
@@ -1193,7 +1193,7 @@ export function StudentDashboard() {
                       <Button 
                         variant="outline" 
                         size="lg" 
-                        className="flex-1 h-16 text-lg font-semibold"
+                        className="flex-1 h-20 text-xl font-bold"
                         onClick={() => {
                           clearQuizProgress(user.id, selectedClass, selectedUnit);
                           startQuiz();
@@ -1204,10 +1204,10 @@ export function StudentDashboard() {
                       <Button 
                         variant="student" 
                         size="lg" 
-                        className="flex-1 h-16 text-xl font-bold"
+                        className="flex-1 h-20 text-2xl font-bold"
                         onClick={() => startQuiz(progress)}
                       >
-                        <Play className="w-6 h-6 mr-2" />
+                        <Play className="w-7 h-7 mr-2" />
                         Continue
                       </Button>
                     </div>
@@ -1215,10 +1215,10 @@ export function StudentDashboard() {
                     <Button 
                       variant="student" 
                       size="lg" 
-                      className="w-full h-16 text-xl font-bold"
+                      className="w-full h-20 text-2xl font-bold"
                       onClick={() => startQuiz()}
                     >
-                      <Play className="w-6 h-6 mr-2" />
+                      <Play className="w-7 h-7 mr-2" />
                       Start Quiz
                     </Button>
                   );
@@ -1228,15 +1228,15 @@ export function StudentDashboard() {
                   <Button 
                     variant="student" 
                     size="lg" 
-                    className="w-full h-16 text-xl font-bold"
+                    className="w-full h-20 text-2xl font-bold"
                     disabled
                   >
-                    <Play className="w-6 h-6 mr-2" />
+                    <Play className="w-7 h-7 mr-2" />
                     Start Quiz
                   </Button>
                 )}
                 
-                <p className="text-base md:text-lg text-muted-foreground text-center">
+                <p className="text-lg md:text-xl text-muted-foreground text-center">
                   Speed bonus • Streak multiplier • Accuracy bonus • Daily cap: 2000pts
                 </p>
               </CardContent>
@@ -1260,16 +1260,16 @@ export function StudentDashboard() {
           <TabsContent value="leaderboard" className="space-y-4 animate-fade-in">
             {!showLeaderboard ? (
               <Card variant="elevated">
-                <CardContent className="py-16 text-center px-8">
-                  <EyeOff className="w-20 h-20 mx-auto mb-6 text-muted-foreground opacity-50" />
-                  <CardTitle className="mb-3 text-2xl md:text-3xl font-bold">Leaderboard is Hidden</CardTitle>
-                  <CardDescription className="mb-6 text-lg md:text-xl">
+                <CardContent className="py-12 text-center px-8">
+                  <EyeOff className="w-24 h-24 mx-auto mb-5 text-muted-foreground opacity-50" />
+                  <CardTitle className="mb-4 text-3xl md:text-4xl lg:text-5xl font-bold">Leaderboard is Hidden</CardTitle>
+                  <CardDescription className="mb-6 text-xl md:text-2xl">
                     Enable the leaderboard in Settings to view rankings and compare your progress with others.
                   </CardDescription>
                   <Button 
                     variant="outline" 
                     size="lg"
-                    className="h-14 text-lg font-semibold"
+                    className="h-16 text-xl font-bold"
                     onClick={() => setActiveTab("settings")}
                   >
                     Go to Settings
@@ -1525,27 +1525,27 @@ export function StudentDashboard() {
           <TabsContent value="classes" className="space-y-4 animate-fade-in">
             {/* Join Class by Code Section */}
             <Card variant="elevated">
-              <CardHeader className="pb-6 px-8 pt-8">
-                <CardTitle className="flex items-center gap-3 text-2xl md:text-3xl font-bold">
-                  <GraduationCap className="w-6 h-6 md:w-7 md:h-7 text-secondary" />
+              <CardHeader className="pb-5 px-8 pt-6">
+                <CardTitle className="flex items-center gap-4 text-3xl md:text-4xl lg:text-5xl font-bold">
+                  <GraduationCap className="w-8 h-8 md:w-9 md:h-9 text-secondary" />
                   Join a Class
                 </CardTitle>
-                <CardDescription className="text-lg md:text-xl mt-2">Enter a class code from your teacher to join their class</CardDescription>
+                <CardDescription className="text-xl md:text-2xl mt-3">Enter a class code from your teacher to join their class</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6 px-8 pb-8">
+              <CardContent className="space-y-5 px-8 pb-6">
                 <div className="flex gap-4">
                   <Input
                     placeholder="Enter class code (e.g., ABC123)"
                     value={classCodeInput}
                     onChange={(e) => setClassCodeInput(e.target.value.toUpperCase())}
-                    className="h-16 font-mono text-xl tracking-wider"
+                    className="h-20 font-mono text-2xl md:text-3xl tracking-wider"
                     maxLength={6}
                     disabled={isJoiningClass}
                   />
                   <Button
                     variant="student"
                     size="lg"
-                    className="h-16 text-lg font-semibold px-8"
+                    className="h-20 text-xl md:text-2xl font-bold px-10"
                     onClick={async () => {
                       if (!classCodeInput.trim()) {
                         toast.error("Please enter a class code");
@@ -1571,27 +1571,27 @@ export function StudentDashboard() {
                     disabled={isJoiningClass || !classCodeInput.trim()}
                   >
                     {isJoiningClass ? (
-                      <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      <div className="w-7 h-7 border-2 border-current border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <>
-                        <Plus className="w-5 h-5 mr-2" />
+                        <Plus className="w-6 h-6 mr-2" />
                         Join
                       </>
                     )}
                   </Button>
                 </div>
-                <p className="text-base text-muted-foreground">
+                <p className="text-lg md:text-xl text-muted-foreground">
                   Ask your teacher for the 6-character class code to join their class
                 </p>
               </CardContent>
             </Card>
 
             <div className="flex items-center justify-between px-2">
-              <h2 className="text-xl md:text-2xl font-bold">My AP Classes ({userClasses.length})</h2>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold">My AP Classes ({userClasses.length})</h2>
               <Dialog open={isAddClassOpen} onOpenChange={setIsAddClassOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="lg" className="h-12 text-base font-semibold">
-                    <Plus className="w-5 h-5 mr-2" />
+                  <Button variant="outline" size="lg" className="h-14 text-lg font-bold">
+                    <Plus className="w-6 h-6 mr-2" />
                     Add Class
                   </Button>
                 </DialogTrigger>
@@ -1621,14 +1621,14 @@ export function StudentDashboard() {
               </Dialog>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-3">
               {userClasses.map((className) => (
                 <Card key={className} variant="elevated">
-                  <CardContent className="p-6">
+                  <CardContent className="p-5">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-bold text-lg md:text-xl">{className}</h3>
-                        <p className="text-base text-muted-foreground mt-1">
+                        <h3 className="font-bold text-xl md:text-2xl lg:text-3xl">{className}</h3>
+                        <p className="text-lg md:text-xl text-muted-foreground mt-2">
                           {units.length} units • {getClassScore(user, className)} pts
                         </p>
                       </div>
@@ -1636,23 +1636,23 @@ export function StudentDashboard() {
                         <Button
                           variant="outline"
                           size="lg"
-                          className="h-12 text-base font-semibold"
+                          className="h-14 text-lg font-bold"
                           onClick={() => {
                             setSelectedClass(className);
                             setSelectedUnit("");
                             setActiveTab("practice");
                           }}
                         >
-                          <Play className="w-5 h-5 mr-2" />
+                          <Play className="w-6 h-6 mr-2" />
                           Practice
                         </Button>
                         <Button
                           variant="ghost"
                           size="lg"
-                          className="h-12 w-12 text-muted-foreground hover:text-destructive"
+                          className="h-14 w-14 text-muted-foreground hover:text-destructive"
                           onClick={() => handleRemoveClass(className)}
                         >
-                          <Trash2 className="w-5 h-5" />
+                          <Trash2 className="w-6 h-6" />
                         </Button>
                       </div>
                     </div>
@@ -1665,45 +1665,45 @@ export function StudentDashboard() {
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-4 animate-fade-in">
             <Card variant="elevated">
-              <CardHeader className="pb-6 px-8 pt-8">
-                <CardTitle className="flex items-center gap-3 text-2xl md:text-3xl font-bold">
-                  <UserIcon className="w-6 h-6 md:w-7 md:h-7 text-secondary" />
+              <CardHeader className="pb-5 px-8 pt-6">
+                <CardTitle className="flex items-center gap-4 text-3xl md:text-4xl lg:text-5xl font-bold">
+                  <UserIcon className="w-8 h-8 md:w-9 md:h-9 text-secondary" />
                   Profile Settings
                 </CardTitle>
-                <CardDescription className="text-lg md:text-xl mt-2">Update your personal information</CardDescription>
+                <CardDescription className="text-xl md:text-2xl mt-3">Update your personal information</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6 px-8 pb-8">
-                <div className="grid sm:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <Label htmlFor="editFirstName" className="text-base font-bold">First Name</Label>
+              <CardContent className="space-y-5 px-8 pb-6">
+                <div className="grid sm:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="editFirstName" className="text-xl md:text-2xl font-bold">First Name</Label>
                     <Input
                       id="editFirstName"
                       value={editFirstName}
                       onChange={(e) => setEditFirstName(e.target.value)}
-                      className="h-14 text-lg"
+                      className="h-20 text-xl"
                     />
                   </div>
-                  <div className="space-y-3">
-                    <Label htmlFor="editLastName" className="text-base font-bold">Last Name</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="editLastName" className="text-xl md:text-2xl font-bold">Last Name</Label>
                     <Input
                       id="editLastName"
                       value={editLastName}
                       onChange={(e) => setEditLastName(e.target.value)}
-                      className="h-14 text-lg"
+                      className="h-20 text-xl"
                     />
                   </div>
                 </div>
                 
-                <div className="space-y-3">
-                  <Label htmlFor="editNickname" className="text-base font-bold">Anonymous Nickname</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="editNickname" className="text-xl md:text-2xl font-bold">Anonymous Nickname</Label>
                   <Input
                     id="editNickname"
                     value={editNickname}
                     disabled
-                    className="bg-muted cursor-not-allowed h-14 text-lg"
+                    className="bg-muted cursor-not-allowed h-20 text-xl"
                     placeholder="Auto-generated"
                   />
-                  <p className="text-base text-muted-foreground">
+                  <p className="text-lg md:text-xl text-muted-foreground">
                     Your nickname is auto-generated and cannot be changed. This ensures privacy and uniqueness.
                   </p>
                 </div>
@@ -1711,20 +1711,20 @@ export function StudentDashboard() {
             </Card>
 
             <Card variant="elevated">
-              <CardHeader className="pb-6 px-8 pt-8">
-                <CardTitle className="flex items-center gap-3 text-2xl md:text-3xl font-bold">
-                  <Trophy className="w-6 h-6 md:w-7 md:h-7 text-secondary" />
+              <CardHeader className="pb-5 px-8 pt-6">
+                <CardTitle className="flex items-center gap-4 text-3xl md:text-4xl lg:text-5xl font-bold">
+                  <Trophy className="w-8 h-8 md:w-9 md:h-9 text-secondary" />
                   Leaderboard Settings
                 </CardTitle>
-                <CardDescription className="text-lg md:text-xl mt-2">Control leaderboard visibility and display preferences</CardDescription>
+                <CardDescription className="text-xl md:text-2xl mt-3">Control leaderboard visibility and display preferences</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6 px-8 pb-8">
-                <div className="flex items-center justify-between p-6 rounded-lg border">
+              <CardContent className="space-y-5 px-8 pb-6">
+                <div className="flex items-center justify-between p-5 rounded-lg border">
                   <div className="space-y-1">
-                    <Label htmlFor="show-leaderboard" className="text-lg font-bold">
+                    <Label htmlFor="show-leaderboard" className="text-xl md:text-2xl font-bold">
                       Show Leaderboard
                     </Label>
-                    <p className="text-base text-muted-foreground">
+                    <p className="text-lg md:text-xl text-muted-foreground">
                       {showLeaderboard 
                         ? "Leaderboard is visible on your dashboard" 
                         : "Leaderboard is hidden from your dashboard"}
@@ -1737,12 +1737,12 @@ export function StudentDashboard() {
                     className="scale-125"
                   />
                 </div>
-                <div className="flex items-center justify-between p-6 rounded-lg border">
+                <div className="flex items-center justify-between p-5 rounded-lg border">
                   <div className="space-y-1">
-                    <Label htmlFor="show-rank" className="text-lg font-bold">
+                    <Label htmlFor="show-rank" className="text-xl md:text-2xl font-bold">
                       Show Rank
                     </Label>
-                    <p className="text-base text-muted-foreground">
+                    <p className="text-lg md:text-xl text-muted-foreground">
                       {showRank 
                         ? "Ranks are visible on leaderboards" 
                         : "Ranks are hidden on leaderboards"}
@@ -1763,33 +1763,33 @@ export function StudentDashboard() {
             </Card>
 
             <Card variant="elevated">
-              <CardHeader className="pb-6 px-8 pt-8">
-                <CardTitle className="flex items-center gap-3 text-2xl md:text-3xl font-bold">
-                  <UserIcon className="w-6 h-6 md:w-7 md:h-7 text-secondary" />
+              <CardHeader className="pb-5 px-8 pt-6">
+                <CardTitle className="flex items-center gap-4 text-3xl md:text-4xl lg:text-5xl font-bold">
+                  <UserIcon className="w-8 h-8 md:w-9 md:h-9 text-secondary" />
                   Leaderboard Display
                 </CardTitle>
-                <CardDescription className="text-lg md:text-xl mt-2">Choose how your name appears on leaderboards</CardDescription>
+                <CardDescription className="text-xl md:text-2xl mt-3">Choose how your name appears on leaderboards</CardDescription>
               </CardHeader>
-              <CardContent className="px-8 pb-8">
+              <CardContent className="px-8 pb-6">
                 <RadioGroup 
                   value={editDisplayPreference} 
                   onValueChange={(v) => setEditDisplayPreference(v as 'realName' | 'nickname')}
                   className="space-y-4"
                 >
                   <div className="flex items-center space-x-4 p-5 rounded-lg border hover:bg-muted/50 transition-colors">
-                    <RadioGroupItem value="nickname" id="nickname" className="w-5 h-5" />
+                    <RadioGroupItem value="nickname" id="nickname" className="w-6 h-6" />
                     <Label htmlFor="nickname" className="flex-1 cursor-pointer">
-                      <div className="font-bold text-lg">Anonymous Nickname</div>
-                      <div className="text-base text-muted-foreground mt-1">
+                      <div className="font-bold text-xl md:text-2xl">Anonymous Nickname</div>
+                      <div className="text-lg md:text-xl text-muted-foreground mt-2">
                         Display as: {editNickname || user.nickname || '(Auto-generated)'}
                       </div>
                     </Label>
                   </div>
                   <div className="flex items-center space-x-4 p-5 rounded-lg border hover:bg-muted/50 transition-colors">
-                    <RadioGroupItem value="realName" id="realName" className="w-5 h-5" />
+                    <RadioGroupItem value="realName" id="realName" className="w-6 h-6" />
                     <Label htmlFor="realName" className="flex-1 cursor-pointer">
-                      <div className="font-bold text-lg">Real Name</div>
-                      <div className="text-base text-muted-foreground mt-1">
+                      <div className="font-bold text-xl md:text-2xl">Real Name</div>
+                      <div className="text-lg md:text-xl text-muted-foreground mt-2">
                         Display as: {editFirstName && editLastName ? `${editFirstName} ${editLastName}` : '(Set your name above)'}
                       </div>
                     </Label>
@@ -1798,13 +1798,13 @@ export function StudentDashboard() {
               </CardContent>
             </Card>
 
-            <Button variant="student" size="lg" className="w-full h-16 text-xl font-bold" onClick={handleSaveSettings}>
+            <Button variant="student" size="lg" className="w-full h-20 text-2xl font-bold" onClick={handleSaveSettings}>
               Save Settings
             </Button>
 
             {/* Danger Zone */}
-            <div className="pt-8 mt-8 border-t border-border">
-              <h3 className="text-lg font-bold text-destructive mb-4">Danger Zone</h3>
+            <div className="pt-6 mt-6 border-t border-border">
+              <h3 className="text-xl md:text-2xl font-bold text-destructive mb-4">Danger Zone</h3>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" size="sm">
