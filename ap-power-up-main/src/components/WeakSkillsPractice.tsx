@@ -143,7 +143,7 @@ export function WeakSkillsPractice({ weakSkills, practiceQuestions, selectedClas
                     <Badge 
                       key={skill.skill} 
                       variant="outline" 
-                      className="bg-red-50 text-red-700 border-red-300 text-base py-2.5 px-5"
+                      className="bg-red-50 text-red-700 border-red-300 text-xl py-4 px-6"
                     >
                       {skill.skill} ({Math.round(skill.accuracy * 100)}%)
                     </Badge>

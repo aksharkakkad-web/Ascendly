@@ -1,4 +1,4 @@
-import { loadClassData } from "./jsonLoader";
+import { loadClassData, clearCache } from "./jsonLoader";
 import { QuestionAttempt, getAllQuestionAnalytics } from "./database";
 import { ClassData, Question } from "./questionData";
 
@@ -73,6 +73,31 @@ export interface StrengthSkill {
   strengthScore: number;
 }
 
+export interface StimulusAnalytics {
+  totalStimulusQuestions: number;
+  attemptedStimulusQuestions: number;
+  correctStimulusQuestions: number;
+  avgStimulusAccuracy: number;
+  avgStimulusStruggleScore: number;
+  avgStimulusTimeSeconds: number;
+  byType: Record<string, {
+    count: number;
+    attempted: number;
+    correct: number;
+    accuracy: number;
+    avgStruggleScore: number;
+    avgTimeSeconds: number;
+  }>;
+  byComplexity: Record<string, {
+    count: number;
+    attempted: number;
+    correct: number;
+    accuracy: number;
+    avgStruggleScore: number;
+    avgTimeSeconds: number;
+  }>;
+}
+
 export interface AdvancedAnalytics {
   summary: {
     totalQuestions: number;
@@ -95,6 +120,7 @@ export interface AdvancedAnalytics {
   weakSkills: WeakSkill[];
   strengthSkills: StrengthSkill[];
   practiceQuestions: string[]; // Question IDs filtered by weak skills
+  stimulusAnalytics?: StimulusAnalytics;
 }
 
 function buildQuestionKey(className: string, unitName: string, subtopicName: string, index: number, question: Question) {
@@ -122,10 +148,13 @@ export async function computeAdvancedAnalytics(
   userId: string,
   className: string
 ): Promise<AdvancedAnalytics | null> {
+  // Clear cache to ensure we get latest unit names from JSON
+  clearCache();
   const classData: ClassData | null = await loadClassData(className);
   if (!classData) return null;
 
-  const attempts = getAllQuestionAnalytics(userId);
+  const attempts = await getAllQuestionAnalytics(userId);
+  
   const attemptMap = new Map<string, QuestionAttempt>(
     attempts.map((a) => [a.questionId, ensureAttemptDefaults(a)!])
   );
@@ -317,13 +346,16 @@ export async function computeAdvancedAnalytics(
     summary.attemptedQuestions > 0 ? summary.correctQuestions / summary.attemptedQuestions : 0;
   summary.avgTimeSeconds = totalAttempts > 0 ? totalTime / totalAttempts : 0;
 
-  const skills = Array.from(skillBuckets.values()).map((s) => ({
-    ...s,
-    accuracy: s.attemptedQuestions > 0 ? s.correctQuestions / s.attemptedQuestions : 0,
-    avgTimeSeconds: s.attempts > 0 ? s.avgTimeSeconds / s.attempts : 0,
-    mastery: s.totalQuestions > 0 ? s.mastery / s.totalQuestions : 0,
-    fragile: s.attemptedQuestions >= 3 && s.accuracy < 0.7 && s.streak < 2,
-  }));
+  const skills = Array.from(skillBuckets.values()).map((s) => {
+    const accuracy = s.attemptedQuestions > 0 ? s.correctQuestions / s.attemptedQuestions : 0;
+    return {
+      ...s,
+      accuracy,
+      avgTimeSeconds: s.attempts > 0 ? s.avgTimeSeconds / s.attempts : 0,
+      mastery: s.totalQuestions > 0 ? s.mastery / s.totalQuestions : 0,
+      fragile: s.attemptedQuestions >= 3 && accuracy < 0.7 && s.streak < 2,
+    };
+  });
 
   const fragileSkills = skills.filter((s) => s.fragile).map((s) => s.skill);
 
@@ -412,6 +444,105 @@ export async function computeAdvancedAnalytics(
     console.warn('[Analytics] Found incorrect attempts but no practice questions generated. This should not happen.');
   }
 
+  // Compute stimulus analytics
+  const stimulusQuestions = questions.filter(q => q.question.stimulusMeta?.hasStimulus);
+  const stimulusByType: Record<string, { count: number; attempted: number; correct: number; totalTime: number; totalStruggle: number }> = {};
+  const stimulusByComplexity: Record<string, { count: number; attempted: number; correct: number; totalTime: number; totalStruggle: number }> = {};
+  
+  let totalStimulusQuestions = 0;
+  let attemptedStimulusQuestions = 0;
+  let correctStimulusQuestions = 0;
+  let totalStimulusTime = 0;
+  let totalStimulusStruggle = 0;
+
+  stimulusQuestions.forEach((item) => {
+    const { question, attempt } = item;
+    const stimulusMeta = question.stimulusMeta;
+    if (!stimulusMeta?.hasStimulus) return;
+
+    totalStimulusQuestions++;
+    const attempted = !!attempt;
+    const correct = attempt?.isCorrect ?? false;
+    const timeSpent = attempt?.timeSpentSeconds ?? 0;
+    const struggleScore = attempt?.stimulusPerformance?.struggleScore ?? 0;
+
+    if (attempted) {
+      attemptedStimulusQuestions++;
+      totalStimulusTime += timeSpent;
+      totalStimulusStruggle += struggleScore;
+    }
+    if (correct) {
+      correctStimulusQuestions++;
+    }
+
+    // Group by stimulus types
+    stimulusMeta.stimulusTypes.forEach((type) => {
+      if (!stimulusByType[type]) {
+        stimulusByType[type] = { count: 0, attempted: 0, correct: 0, totalTime: 0, totalStruggle: 0 };
+      }
+      stimulusByType[type].count++;
+      if (attempted) {
+        stimulusByType[type].attempted++;
+        stimulusByType[type].totalTime += timeSpent;
+        stimulusByType[type].totalStruggle += struggleScore;
+      }
+      if (correct) {
+        stimulusByType[type].correct++;
+      }
+    });
+
+    // Group by complexity
+    const complexity = stimulusMeta.stimulusComplexity;
+    if (!stimulusByComplexity[complexity]) {
+      stimulusByComplexity[complexity] = { count: 0, attempted: 0, correct: 0, totalTime: 0, totalStruggle: 0 };
+    }
+    stimulusByComplexity[complexity].count++;
+    if (attempted) {
+      stimulusByComplexity[complexity].attempted++;
+      stimulusByComplexity[complexity].totalTime += timeSpent;
+      stimulusByComplexity[complexity].totalStruggle += struggleScore;
+    }
+    if (correct) {
+      stimulusByComplexity[complexity].correct++;
+    }
+  });
+
+  // Build stimulus analytics object
+  const stimulusAnalytics: StimulusAnalytics | undefined = totalStimulusQuestions > 0 ? {
+    totalStimulusQuestions,
+    attemptedStimulusQuestions,
+    correctStimulusQuestions,
+    avgStimulusAccuracy: attemptedStimulusQuestions > 0 ? correctStimulusQuestions / attemptedStimulusQuestions : 0,
+    avgStimulusStruggleScore: attemptedStimulusQuestions > 0 ? totalStimulusStruggle / attemptedStimulusQuestions : 0,
+    avgStimulusTimeSeconds: attemptedStimulusQuestions > 0 ? totalStimulusTime / attemptedStimulusQuestions : 0,
+    byType: Object.fromEntries(
+      Object.entries(stimulusByType).map(([type, stats]) => [
+        type,
+        {
+          count: stats.count,
+          attempted: stats.attempted,
+          correct: stats.correct,
+          accuracy: stats.attempted > 0 ? stats.correct / stats.attempted : 0,
+          avgStruggleScore: stats.attempted > 0 ? stats.totalStruggle / stats.attempted : 0,
+          avgTimeSeconds: stats.attempted > 0 ? stats.totalTime / stats.attempted : 0,
+        },
+      ])
+    ),
+    byComplexity: Object.fromEntries(
+      Object.entries(stimulusByComplexity).map(([complexity, stats]) => [
+        complexity,
+        {
+          count: stats.count,
+          attempted: stats.attempted,
+          correct: stats.correct,
+          accuracy: stats.attempted > 0 ? stats.correct / stats.attempted : 0,
+          avgStruggleScore: stats.attempted > 0 ? stats.totalStruggle / stats.attempted : 0,
+          avgTimeSeconds: stats.attempted > 0 ? stats.totalTime / stats.attempted : 0,
+        },
+      ])
+    ),
+  } : undefined;
+
   return {
     summary,
     skills,
@@ -427,15 +558,13 @@ export async function computeAdvancedAnalytics(
     weakSkills,
     strengthSkills,
     practiceQuestions,
+    stimulusAnalytics,
   };
 }
 
 /**
- * Detects weak skills based on multiple factors:
- * 1. Repeated mistakes (count of mistake patterns)
- * 2. Low accuracy (< 70%)
- * 3. Low mastery (< 0.7)
- * 4. Low confidence (if available, < 50%)
+ * Detects weak skills - returns 3 worst skills by lowest accuracy (<70%)
+ * Based purely on accuracy, not number of questions answered
  */
 function detectWeakSkills(
   skills: SkillStat[],
@@ -455,10 +584,12 @@ function detectWeakSkills(
     });
   });
 
+  // Needs Practice: 3 worst skills by lowest accuracy (<70%)
+  // Only include skills that have been attempted and have <70% accuracy
   const weakSkillsData: WeakSkill[] = skills
     .filter((skill) => {
-      // Must have at least some attempts to be considered weak
-      return skill.attemptedQuestions > 0;
+      // Must have at least 1 attempt and accuracy < 70%
+      return skill.attemptedQuestions > 0 && skill.accuracy < 0.7;
     })
     .map((skill) => {
       // Calculate mistake count (sum of all mistake pattern counts)
@@ -477,36 +608,6 @@ function detectWeakSkills(
         ? confidences.reduce((sum, c) => sum + c, 0) / confidences.length 
         : undefined;
 
-      // Calculate composite weak score (higher = weaker)
-      // Priority: repeated mistakes > low accuracy > low mastery > low confidence
-      let weakScore = 0;
-      
-      // Repeated mistakes: weight = 40%
-      const mistakeFactor = Math.min(mistakeCount / 5, 1); // Normalize to 0-1
-      weakScore += mistakeFactor * 0.4;
-      
-      // Low accuracy: weight = 30% (if accuracy < 70%)
-      if (skill.accuracy < 0.7) {
-        const accuracyFactor = (0.7 - skill.accuracy) / 0.7; // 0.7 accuracy = 0, 0 accuracy = 1
-        weakScore += accuracyFactor * 0.3;
-      }
-      
-      // Low mastery: weight = 20% (if mastery < 0.7)
-      if (skill.mastery < 0.7) {
-        const masteryFactor = (0.7 - skill.mastery) / 0.7;
-        weakScore += masteryFactor * 0.2;
-      }
-      
-      // Low confidence: weight = 10% (if confidence < 50% and available)
-      if (avgConfidence !== undefined && avgConfidence < 50) {
-        const confidenceFactor = (50 - avgConfidence) / 50;
-        weakScore += confidenceFactor * 0.1;
-      }
-
-      // Special case: If user got a question wrong (accuracy = 0% with at least 1 attempt), 
-      // always mark as weak even if weakScore is low
-      const hasWrongAnswer = skill.attemptedQuestions > 0 && skill.correctQuestions === 0;
-
       // Get question IDs that need practice (questions with this skill that are incorrect or unanswered)
       const questionIds = skillQuestions
         .filter((q) => {
@@ -523,33 +624,31 @@ function detectWeakSkills(
         mistakeCount,
         avgTimeSeconds: skill.avgTimeSeconds,
         confidence: avgConfidence,
-        weakScore: hasWrongAnswer && weakScore === 0 ? 0.5 : weakScore, // Ensure wrong answers always get flagged
+        weakScore: 1 - skill.accuracy, // Use inverse accuracy as weakScore (lower accuracy = higher weakScore)
         questionIds,
       };
     })
-    .filter((skill) => {
-      // Include skills with:
-      // 1. weakScore > 0 (calculated weakness)
-      // 2. OR any incorrect answers (accuracy < 100% with attempts)
-      // 3. OR any unanswered questions for this skill
-      const hasIncorrectAnswers = skill.attemptedQuestions > 0 && skill.accuracy < 1.0;
-      const hasUnansweredForSkill = skill.questionIds.length > 0;
-      return skill.weakScore > 0 || hasIncorrectAnswers || hasUnansweredForSkill;
-    })
-    .sort((a, b) => b.weakScore - a.weakScore); // Sort by weakScore descending (weakest first)
+    .sort((a, b) => a.accuracy - b.accuracy) // Sort by accuracy ascending (lowest accuracy first)
+    .slice(0, 3); // Return top 3 worst skills
 
   return weakSkillsData;
 }
 
 /**
- * Detects strength skills (top performers)
+ * Detects strength skills - returns 3 best skills by highest accuracy (>85%)
+ * Based purely on accuracy, not number of questions answered
  */
 function detectStrengthSkills(skills: SkillStat[]): StrengthSkill[] {
+  // Top Strengths: 3 best skills by highest accuracy (>85%)
+  // Only include skills that have been attempted and have >85% accuracy
   return skills
-    .filter((skill) => skill.attemptedQuestions >= 3) // Need at least 3 attempts to be a strength
+    .filter((skill) => {
+      // Need at least 1 attempt and accuracy > 85%
+      return skill.attemptedQuestions > 0 && skill.accuracy > 0.85;
+    })
     .map((skill) => {
-      // Calculate strength score (higher = stronger)
-      const strengthScore = (skill.accuracy * 0.5) + (skill.mastery * 0.5);
+      // Calculate strength score (higher = stronger) - use accuracy as primary metric
+      const strengthScore = skill.accuracy;
       
       return {
         skill: skill.skill,
@@ -558,8 +657,8 @@ function detectStrengthSkills(skills: SkillStat[]): StrengthSkill[] {
         strengthScore,
       };
     })
-    .filter((skill) => skill.accuracy >= 0.8 && skill.mastery >= 0.7) // Only strong skills
-    .sort((a, b) => b.strengthScore - a.strengthScore); // Sort by strengthScore descending
+    .sort((a, b) => b.accuracy - a.accuracy) // Sort by accuracy descending (highest accuracy first)
+    .slice(0, 3); // Return top 3 best skills
 }
 
 /**

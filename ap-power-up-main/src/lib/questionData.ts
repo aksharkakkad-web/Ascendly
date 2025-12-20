@@ -27,6 +27,44 @@ export interface QuestionMetadata {
   skillTags: string[]; // e.g., ["chain_rule", "derivatives", "trigonometry"]
 }
 
+// Stimulus types
+export interface TextStimulus {
+  type: "text";
+  label: string;
+  content: string;
+}
+
+export interface TableStimulus {
+  type: "table";
+  label: string;
+  columns: string[];
+  rows: (string | number)[][];
+}
+
+export interface GraphStimulus {
+  type: "graph";
+  label: string;
+  graphType: "line" | "bar" | "scatter";
+  xLabel: string;
+  yLabel: string;
+  data: { x: number; y: number }[];
+}
+
+export type StimulusItem = TextStimulus | TableStimulus | GraphStimulus;
+
+export interface StimulusMeta {
+  hasStimulus: boolean;
+  stimulusTypes: ("text" | "table" | "graph")[];
+  stimulusComplexity: "low" | "medium" | "high";
+}
+
+export interface StimulusPerformance {
+  attemptCount: number;
+  timeSpentSeconds: number;
+  wasCorrect: boolean;
+  struggleScore: number; // 0-1 scale
+}
+
 export interface QuestionUserState {
   status: "unanswered" | "correct" | "incorrect";
   isCorrect: boolean;
@@ -38,6 +76,7 @@ export interface QuestionUserState {
   skillMasterySnapshot: Record<string, SkillMastery>;
   lastPracticedAt: string | null;
   streak?: number;
+  stimulusPerformance?: StimulusPerformance;
 }
 
 export interface Question {
@@ -49,6 +88,8 @@ export interface Question {
   commonMistakePatterns: string[]; // Common mistakes students make
   metadata: QuestionMetadata;
   userState: QuestionUserState;
+  stimulus?: StimulusItem[];
+  stimulusMeta?: StimulusMeta;
 }
 
 export interface Subtopic {
@@ -83,6 +124,12 @@ export function initializeUserState(): QuestionUserState {
     skillMasterySnapshot: {},
     lastPracticedAt: null,
     streak: 0,
+    stimulusPerformance: {
+      attemptCount: 0,
+      timeSpentSeconds: 0,
+      wasCorrect: false,
+      struggleScore: 0,
+    },
   };
 }
 
@@ -129,8 +176,38 @@ export function parseQuestionId(questionId: string): {
   };
 }
 
+// Helper function to derive stimulus metadata from stimulus array
+export function deriveStimulusMeta(stimulus?: StimulusItem[]): StimulusMeta {
+  if (!stimulus || stimulus.length === 0) {
+    return {
+      hasStimulus: false,
+      stimulusTypes: [],
+      stimulusComplexity: "low",
+    };
+  }
+
+  const types = [...new Set(stimulus.map((s) => s.type))] as ("text" | "table" | "graph")[];
+  
+  // Determine complexity based on number and types of stimulus
+  let complexity: "low" | "medium" | "high" = "low";
+  if (stimulus.length > 2 || types.length > 2) {
+    complexity = "high";
+  } else if (stimulus.length > 1 || types.length > 1 || types.includes("graph") || types.includes("table")) {
+    complexity = "medium";
+  }
+
+  return {
+    hasStimulus: true,
+    stimulusTypes: types,
+    stimulusComplexity: complexity,
+  };
+}
+
 // Legacy support: Convert old question format to new format
 export function migrateQuestion(oldQuestion: any): Question {
+  const stimulus = oldQuestion.stimulus || [];
+  const stimulusMeta = oldQuestion.stimulusMeta || deriveStimulusMeta(stimulus);
+  
   return {
     id: oldQuestion.id || "",
     questionText: oldQuestion.question || oldQuestion.questionText || "",
@@ -145,5 +222,7 @@ export function migrateQuestion(oldQuestion: any): Question {
     commonMistakePatterns: oldQuestion.commonMistakePatterns || [],
     metadata: oldQuestion.metadata || initializeMetadata(),
     userState: oldQuestion.userState || initializeUserState(),
+    stimulus: stimulus.length > 0 ? stimulus : undefined,
+    stimulusMeta: stimulusMeta.hasStimulus ? stimulusMeta : undefined,
   };
 }

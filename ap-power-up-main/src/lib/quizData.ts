@@ -168,23 +168,6 @@ export const apClasses: AllClassesData = {
       {"question": "The emotional atmosphere of a work is its?", "options": ["Tone", "Mood", "Style", "Diction"], "answer": "Mood"}
     ]
   },
-  "AP French": {
-    "Unit 1": [
-      {"question": "Translate 'la famille' to English.", "options": ["The family", "The friend", "The house", "The dog"], "answer": "The family"},
-      {"question": "Which verb means 'to be'?", "options": ["Avoir", "Être", "Faire", "Aller"], "answer": "Être"},
-      {"question": "Select the correct article: ___ maison.", "options": ["Le", "La", "L'", "Les"], "answer": "La"}
-    ],
-    "Unit 2": [
-      {"question": "What is 'Passé Composé' used for?", "options": ["Future actions", "Past completed actions", "Ongoing past", "Hypotheticals"], "answer": "Past completed actions"},
-      {"question": "Translate 'Je voudrais'.", "options": ["I like", "I would like", "I can", "I go"], "answer": "I would like"},
-      {"question": "Which preposition often indicates location?", "options": ["À", "De", "Pour", "Avec"], "answer": "À"}
-    ],
-    "Unit 3": [
-      {"question": "What theme covers lifestyle and beliefs?", "options": ["Science", "Families & Communities", "Beauty", "Global Challenges"], "answer": "Families & Communities"},
-      {"question": "Translate 'le monde'.", "options": ["The moon", "The world", "The wall", "The word"], "answer": "The world"},
-      {"question": "Which tense expresses 'I will go'?", "options": ["Présent", "Futur Simple", "Imparfait", "Subjonctif"], "answer": "Futur Simple"}
-    ]
-  },
   "AP Environmental Science": {
     "Unit 1": [
       {"question": "What is an ecosystem?", "options": ["Only living things", "Living and nonliving interactions", "Only climate", "A single species"], "answer": "Living and nonliving interactions"},
@@ -200,23 +183,6 @@ export const apClasses: AllClassesData = {
       {"question": "What is the human population trend?", "options": ["Decreasing", "Exponential growth", "Stable", "Zero growth"], "answer": "Exponential growth"},
       {"question": "Which is a fossil fuel?", "options": ["Solar", "Coal", "Wind", "Hydro"], "answer": "Coal"},
       {"question": "The greenhouse effect causes?", "options": ["Cooling", "Warming", "Rain", "Wind"], "answer": "Warming"}
-    ]
-  },
-  "AP Latin": {
-    "Unit 1": [
-      {"question": "What case is used for the subject?", "options": ["Nominative", "Genitive", "Dative", "Accusative"], "answer": "Nominative"},
-      {"question": "Translate 'puella'.", "options": ["Boy", "Girl", "Dog", "House"], "answer": "Girl"},
-      {"question": "The verb ending '-t' indicates?", "options": ["I", "You", "He/She/It", "They"], "answer": "He/She/It"}
-    ],
-    "Unit 2": [
-      {"question": "Which work was written by Virgil?", "options": ["De Bello Gallico", "Aeneid", "Odyssey", "Iliad"], "answer": "Aeneid"},
-      {"question": "Caesar wrote about wars in?", "options": ["Gaul", "Troy", "Rome", "Greece"], "answer": "Gaul"},
-      {"question": "Translate 'bellum'.", "options": ["Beauty", "War", "Good", "Bell"], "answer": "War"}
-    ],
-    "Unit 3": [
-      {"question": "The Ablative Absolute consists of?", "options": ["Noun + Participle", "Subject + Verb", "Adjective + Noun", "Verb + Object"], "answer": "Noun + Participle"},
-      {"question": "Which meter is the Aeneid written in?", "options": ["Iambic Pentameter", "Dactylic Hexameter", "Hendecasyllabic", "Elegiac Couplet"], "answer": "Dactylic Hexameter"},
-      {"question": "Who is the hero of the Aeneid?", "options": ["Hector", "Achilles", "Aeneas", "Ulysses"], "answer": "Aeneas"}
     ]
   },
   "AP Macroeconomics": {
@@ -336,23 +302,6 @@ export const apClasses: AllClassesData = {
       {"question": "Operant conditioning involves?", "options": ["Reflexes", "Rewards and punishments", "Observation", "Genetics"], "answer": "Rewards and punishments"},
       {"question": "Short-term memory capacity is approx?", "options": ["7 items", "100 items", "Unlimited", "2 items"], "answer": "7 items"},
       {"question": "Jean Piaget studied?", "options": ["Social norms", "Cognitive development", "Digestion", "Sleep"], "answer": "Cognitive development"}
-    ]
-  },
-  "AP Spanish Language & Culture": {
-    "Unit 1": [
-      {"question": "What is 'La Tomatina'?", "options": ["Dance", "Tomato fight festival", "Food dish", "Politics"], "answer": "Tomato fight festival"},
-      {"question": "Translate 'El medio ambiente'.", "options": ["The environment", "The middle", "The ambient", "The media"], "answer": "The environment"},
-      {"question": "Which region speaks Catalan?", "options": ["Madrid", "Catalonia", "Andalusia", "Galicia"], "answer": "Catalonia"}
-    ],
-    "Unit 2": [
-      {"question": "Who painted 'Guernica'?", "options": ["Dalí", "Picasso", "Goya", "Velázquez"], "answer": "Picasso"},
-      {"question": "Translate 'ciudadanía'.", "options": ["City", "Citizenship", "Citizen", "Civic"], "answer": "Citizenship"},
-      {"question": "Which word means 'challenge'?", "options": ["Desafío", "Fácil", "Cambio", "Meta"], "answer": "Desafío"}
-    ],
-    "Unit 3": [
-      {"question": "Frida Kahlo is famous for?", "options": ["Landscapes", "Self-portraits", "Sculptures", "Architecture"], "answer": "Self-portraits"},
-      {"question": "Magic Realism is associated with?", "options": ["Cervantes", "Gabriel García Márquez", "Borges", "Neruda"], "answer": "Gabriel García Márquez"},
-      {"question": "Translate 'tecnología'.", "options": ["Technology", "Technique", "Technical", "Terms"], "answer": "Technology"}
     ]
   },
   "AP Statistics": {

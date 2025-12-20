@@ -6,7 +6,7 @@ import { AdvancedAnalytics } from "@/lib/advancedAnalytics";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { loadClassData } from "@/lib/jsonLoader";
+import { loadClassData, clearCache } from "@/lib/jsonLoader";
 
 // Format label: convert underscores to spaces and title case
 const formatLabel = (label: string): string => {
@@ -30,27 +30,45 @@ export function UnitProgressDetailModal({ analytics, open, onClose, onUnitSelect
     (analytics as any).selectedUnit || null
   );
   const [unitIdMap, setUnitIdMap] = useState<Record<string, string>>({});
+  const [unitNameMap, setUnitNameMap] = useState<Record<string, string>>({});
 
-  // Load class data to get unitId mapping
+  // Load class data to get unitId mapping and exact unitName mapping
   useEffect(() => {
     if (!className) {
       setUnitIdMap({});
+      setUnitNameMap({});
       return;
     }
+    // Clear cache to ensure we get latest unit names from dataset
+    clearCache();
     loadClassData(className).then((classData) => {
       if (classData) {
-        const map: Record<string, string> = {};
+        const idMap: Record<string, string> = {};
+        const nameMap: Record<string, string> = {};
         classData.units.forEach((unit) => {
           // Use exact unitName as key (should match unit.key from analytics)
-          map[unit.unitName] = unit.unitId;
+          idMap[unit.unitName] = unit.unitId;
+          // Map unitName to itself to ensure exact match from dataset
+          nameMap[unit.unitName] = unit.unitName;
+          // Create case-insensitive and trimmed mappings for robustness
+          const lowerTrimmed = unit.unitName.toLowerCase().trim();
+          nameMap[lowerTrimmed] = unit.unitName;
+          // Map trimmed version if different
+          const trimmed = unit.unitName.trim();
+          if (trimmed !== unit.unitName) {
+            nameMap[trimmed] = unit.unitName;
+          }
         });
-        setUnitIdMap(map);
+        setUnitIdMap(idMap);
+        setUnitNameMap(nameMap);
       } else {
         setUnitIdMap({});
+        setUnitNameMap({});
       }
     }).catch((error) => {
       console.error('Error loading class data for unitId mapping:', error);
       setUnitIdMap({});
+      setUnitNameMap({});
     });
   }, [className]);
 
@@ -99,14 +117,14 @@ export function UnitProgressDetailModal({ analytics, open, onClose, onUnitSelect
         fullKey: unit.key, // Keep original unit name for tooltips
       };
     });
-  }, [analytics?.units, unitIdMap]);
+  }, [analytics?.units, unitIdMap, unitNameMap]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-[98vw] sm:max-w-[95vw] h-[95vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="px-8 pt-8 pb-6 flex-shrink-0">
           <DialogTitle className="text-3xl">
-            {selectedUnit ? `${selectedUnit.key} - Details` : "Unit Progress Overview"}
+            {selectedUnit ? `${unitNameMap[selectedUnit.key] || Object.keys(unitNameMap).find(k => k.toLowerCase().trim() === selectedUnit.key.toLowerCase().trim()) || selectedUnit.key} - Details` : "Unit Progress Overview"}
           </DialogTitle>
         </DialogHeader>
         <ScrollArea className="flex-1 min-h-0 px-8 pb-8">
@@ -153,9 +171,10 @@ export function UnitProgressDetailModal({ analytics, open, onClose, onUnitSelect
                           }}
                           formatter={(value: any) => [`${Math.round(value * 100)}%`, 'Accuracy']}
                           labelFormatter={(label, payload) => {
-                            // Show full unit name in tooltip
+                            // Show exact unitName from dataset in tooltip
                             if (payload && payload.length > 0 && payload[0].payload) {
-                              return payload[0].payload.fullKey || label;
+                              const unitKey = payload[0].payload.fullKey || payload[0].payload.key || label;
+                              return unitNameMap[unitKey] || Object.keys(unitNameMap).find(k => k.toLowerCase().trim() === unitKey.toLowerCase().trim()) || unitKey;
                             }
                             return label;
                           }}
@@ -186,7 +205,11 @@ export function UnitProgressDetailModal({ analytics, open, onClose, onUnitSelect
                       onClick={() => handleUnitClick(unit)}
                     >
                       <CardHeader>
-                        <CardTitle className="text-xl">{unit.key}</CardTitle>
+                        <CardTitle className="text-xl">
+                          {unitNameMap[unit.key] || 
+                           Object.keys(unitNameMap).find(k => k.toLowerCase().trim() === unit.key.toLowerCase().trim()) || 
+                           unit.key}
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-3">
@@ -232,7 +255,7 @@ export function UnitProgressDetailModal({ analytics, open, onClose, onUnitSelect
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-2xl">{selectedUnit.key}</CardTitle>
+                    <CardTitle className="text-2xl">{unitNameMap[selectedUnit.key] || Object.keys(unitNameMap).find(k => k.toLowerCase().trim() === selectedUnit.key.toLowerCase().trim()) || selectedUnit.key}</CardTitle>
                     <CardDescription className="text-base">Detailed performance metrics</CardDescription>
                   </CardHeader>
                   <CardContent>

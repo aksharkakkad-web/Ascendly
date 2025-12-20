@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAllClassNames } from "@/lib/jsonLoader";
 import { toast } from "sonner";
+import { PremiumLoader } from "@/components/ui/premium-loader";
 
 export function AuthPage() {
   const { role } = useParams<{ role: 'student' | 'teacher' }>();
@@ -124,8 +125,8 @@ export function AuthPage() {
             onClick={() => navigate('/')}
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Back to Home</span>
+            <ArrowLeft className="w-10 h-10" />
+            <span className="text-2xl">Back to Home</span>
           </button>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-background/20 flex items-center justify-center">
@@ -143,20 +144,20 @@ export function AuthPage() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center p-6 bg-muted/30">
-        <Card variant="elevated" className="w-full max-w-lg animate-scale-in">
+      <main className="flex-1 flex items-center justify-center p-12 bg-muted/30">
+        <Card variant="elevated" className="w-full max-w-2xl animate-scale-in">
           <CardHeader className="text-center">
-            <div className={`w-16 h-16 mx-auto rounded-2xl ${isStudent ? 'gradient-secondary' : 'gradient-primary'} flex items-center justify-center mb-4`}>
+            <div className={`w-32 h-32 mx-auto rounded-2xl ${isStudent ? 'gradient-secondary' : 'gradient-primary'} flex items-center justify-center mb-8`}>
               {isStudent ? (
-                <GraduationCap className="w-8 h-8 text-secondary-foreground" />
+                <GraduationCap className="w-16 h-16 text-secondary-foreground" />
               ) : (
-                <Users className="w-8 h-8 text-primary-foreground" />
+                <Users className="w-16 h-16 text-primary-foreground" />
               )}
             </div>
-            <CardTitle className="text-2xl">
+            <CardTitle className="text-4xl">
               {isLogin ? 'Welcome Back' : 'Create Account'}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xl">
               {isLogin 
                 ? `Sign in to your ${isStudent ? 'student' : 'teacher'} account`
                 : `Register as a ${isStudent ? 'student' : 'teacher'}`
@@ -164,35 +165,35 @@ export function AuthPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-8">
               {!isLogin && (
                 <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name *</Label>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <Label htmlFor="firstName" className="text-xl">First Name *</Label>
                       <Input
                         id="firstName"
                         placeholder="John"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        className="h-12"
+                        className="h-24 !text-6xl md:!text-6xl"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name *</Label>
+                    <div className="space-y-4">
+                      <Label htmlFor="lastName" className="text-xl">Last Name *</Label>
                       <Input
                         id="lastName"
                         placeholder="Doe"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
-                        className="h-12"
+                        className="h-24 !text-6xl md:!text-6xl"
                       />
                     </div>
                   </div>
                   
                   {isStudent && (
-                    <div className="p-3 rounded-lg bg-muted/50 border border-dashed">
-                    <p className="text-xs text-muted-foreground">
+                    <div className="p-6 rounded-lg bg-muted/50 border border-dashed">
+                    <p className="text-sm text-muted-foreground">
                         A random anonymous nickname will be automatically generated for you (e.g., Lion1234)
                     </p>
                   </div>
@@ -200,19 +201,19 @@ export function AuthPage() {
                 </>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="username">Username {!isLogin && '*'}</Label>
+              <div className="space-y-4">
+                <Label htmlFor="username" className="text-xl">Username {!isLogin && '*'}</Label>
                 <Input
                   id="username"
                   placeholder="Enter your username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="h-12"
+                  className="h-24 !text-5xl md:!text-5xl"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password {!isLogin && '*'}</Label>
+              <div className="space-y-4">
+                <Label htmlFor="password" className="text-xl">Password {!isLogin && '*'}</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -220,72 +221,72 @@ export function AuthPage() {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 pr-12"
+                    className="h-24 pr-24 !text-5xl md:!text-5xl"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute right-8 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showPassword ? <EyeOff className="w-10 h-10" /> : <Eye className="w-10 h-10" />}
                   </button>
                 </div>
               </div>
 
               {!isLogin && (
-                <div className="space-y-3">
-                  <Label>Select AP {isStudent ? 'Classes' : 'Class'} * {isStudent ? '(choose multiple)' : '(select one subject to create your class)'}</Label>
+                <div className="space-y-6">
+                  <Label className="text-xl">Select AP {isStudent ? 'Classes' : 'Class'} * {isStudent ? '(choose multiple)' : '(select one subject to create your class)'}</Label>
                   
                   {/* Selected classes chips */}
                   {selectedClasses.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-4">
                       {selectedClasses.map((className) => (
                         <div 
                           key={className}
-                          className="flex items-center gap-1 px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-sm"
+                          className="flex items-center gap-2 px-6 py-2 rounded-full bg-secondary text-secondary-foreground text-base"
                         >
                           <span>{className}</span>
                           <button 
                             type="button"
                             onClick={() => toggleClass(className)}
-                            className="hover:bg-secondary-foreground/20 rounded-full p-0.5"
+                            className="hover:bg-secondary-foreground/20 rounded-full p-1"
                           >
-                            <X className="w-3 h-3" />
+                            <X className="w-6 h-6" />
                           </button>
                         </div>
                       ))}
                     </div>
                   )}
 
-                  <ScrollArea className="h-48 rounded-xl border p-4">
-                    <div className="space-y-2">
+                  <ScrollArea className="h-96 rounded-xl border p-8">
+                    <div className="space-y-4">
                       {classes.map((className) => {
                         const isChecked = selectedClasses.includes(className);
                         return (
                           <div 
                             key={className}
-                            className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                            className="flex items-center space-x-6 p-4 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                             onClick={() => toggleClass(className)}
                           >
                             <div 
                               className={cn(
-                                "h-4 w-4 shrink-0 rounded-sm border border-primary flex items-center justify-center",
+                                "h-8 w-8 shrink-0 rounded-sm border border-primary flex items-center justify-center",
                                 isChecked && "bg-primary text-primary-foreground"
                               )}
                               onClick={(e) => e.stopPropagation()}
                             >
-                              {isChecked && <Check className="h-3 w-3" />}
+                              {isChecked && <Check className="h-6 w-6" />}
                             </div>
-                            <span className="text-sm font-medium">{className}</span>
+                            <span className="text-base font-medium">{className}</span>
                           </div>
                         );
                       })}
                     </div>
                   </ScrollArea>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     {selectedClasses.length} class{selectedClasses.length !== 1 ? 'es' : ''} selected
                     {!isStudent && selectedClasses.length === 1 && (
-                      <span className="block mt-1 text-primary font-medium">This will be your class's AP subject</span>
+                      <span className="block mt-2 text-primary font-medium">This will be your class's AP subject</span>
                     )}
                   </p>
                 </div>
@@ -298,22 +299,22 @@ export function AuthPage() {
                   navigate('/dashboard');
                 }
               }}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle className="text-2xl">Your Class Code</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle className="text-4xl">Your Class Code</DialogTitle>
+                    <DialogDescription className="text-xl">
                       Share this code with your students so they can join your class
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="bg-primary/10 border-2 border-primary rounded-xl p-6 text-center">
-                      <div className="text-sm text-muted-foreground mb-2">Class Code</div>
-                      <div className="text-4xl font-bold tracking-wider text-primary font-mono">
+                  <div className="space-y-8 py-8">
+                    <div className="bg-primary/10 border-2 border-primary rounded-xl p-12 text-center">
+                      <div className="text-base text-muted-foreground mb-4">Class Code</div>
+                      <div className="text-8xl font-bold tracking-wider text-primary font-mono">
                         {generatedClassCode}
                       </div>
                     </div>
-                    <div className="bg-muted rounded-lg p-4">
-                      <p className="text-sm text-muted-foreground">
+                    <div className="bg-muted rounded-lg p-8">
+                      <p className="text-base text-muted-foreground">
                         <strong className="text-foreground">Important:</strong> Save this code! Students will need it to join your class. 
                         You can view it again in your dashboard.
                       </p>
@@ -321,7 +322,7 @@ export function AuthPage() {
                     <Button 
                       variant="teacher" 
                       size="lg" 
-                      className="w-full"
+                      className="w-full h-24 text-xl"
                       onClick={() => {
                         setShowClassCode(false);
                         navigate('/dashboard');
@@ -337,30 +338,30 @@ export function AuthPage() {
                 type="submit" 
                 variant={isStudent ? "student" : "teacher"}
                 size="lg" 
-                className="w-full h-12"
+                className="w-full h-24 text-[32.4px]"
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  <PremiumLoader size="sm" />
                 ) : isLogin ? (
                   <>
-                    <LogIn className="w-5 h-5 mr-2" />
+                    <LogIn className="w-10 h-10 mr-4" />
                     Sign In
                   </>
                 ) : (
                   <>
-                    <UserPlus className="w-5 h-5 mr-2" />
+                    <UserPlus className="w-10 h-10 mr-4" />
                     Create Account
                   </>
                 )}
               </Button>
 
-              <div className="relative my-6">
+              <div className="relative my-12">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t"></div>
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-card text-muted-foreground">or</span>
+                <div className="relative flex justify-center text-base">
+                  <span className="px-8 bg-card text-muted-foreground">or</span>
                 </div>
               </div>
 
@@ -368,7 +369,7 @@ export function AuthPage() {
                 type="button"
                 variant="outline"
                 size="lg"
-                className="w-full h-12"
+                className="w-full h-24 text-[32.4px]"
                 onClick={() => setIsLogin(!isLogin)}
               >
                 {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}

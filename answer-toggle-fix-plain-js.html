@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Answer Toggle Fix - Plain JavaScript</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .question {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        .answer-button {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            background: #f5f5f5;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            font-size: 16px;
+        }
+        .answer-button:hover:not(:disabled) {
+            background: #e0e0e0;
+            border-color: #999;
+        }
+        .answer-button:disabled {
+            cursor: not-allowed;
+        }
+        .answer-button.selected {
+            border-color: #4a90e2;
+            background: #e3f2fd;
+        }
+        .answer-button.correct {
+            border-color: #4caf50;
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .answer-button.incorrect {
+            border-color: #f44336;
+            background: #ffebee;
+            color: #c62828;
+        }
+        .submit-btn {
+            padding: 12px 24px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Answer Toggle Fix - Plain JavaScript</h1>
+    
+    <div class="question">
+        <h2>What is 2 + 2?</h2>
+        <div id="answers-container"></div>
+        <button id="submit-btn" class="submit-btn" disabled>Submit Answer</button>
+        <div id="result" style="margin-top: 15px; font-weight: bold;"></div>
+    </div>
+
+    <script>
+        // Question data
+        const question = {
+            questionText: "What is 2 + 2?",
+            options: [
+                { id: "A", content: "3" },
+                { id: "B", content: "4" },
+                { id: "C", content: "5" },
+                { id: "D", content: "6" }
+            ],
+            correctAnswer: "B" // Can be string "B" or number, will be normalized
+        };
+
+        // State
+        let selectedAnswer = null;
+        let isSubmitted = false;
+        let isCorrect = false;
+
+        // Initialize
+        function init() {
+            renderAnswers();
+            document.getElementById('submit-btn').addEventListener('click', handleSubmit);
+        }
+
+        // Render answer buttons
+        function renderAnswers() {
+            const container = document.getElementById('answers-container');
+            container.innerHTML = '';
+            
+            question.options.forEach(option => {
+                const button = document.createElement('button');
+                button.className = 'answer-button';
+                button.textContent = `${option.id}. ${option.content}`;
+                button.dataset.answerId = option.id;
+                
+                // Add click handler
+                button.addEventListener('click', () => {
+                    if (!isSubmitted) {
+                        handleAnswerSelect(option.id);
+                    }
+                });
+                
+                // Update button state
+                updateButtonState(button, option.id);
+                
+                container.appendChild(button);
+            });
+        }
+
+        // Update button visual state
+        function updateButtonState(button, answerId) {
+            // Reset all classes
+            button.className = 'answer-button';
+            button.disabled = isSubmitted;
+            
+            // Normalize for comparison (handles string/number mismatch)
+            const normalizedSelected = selectedAnswer ? String(selectedAnswer).trim() : null;
+            const normalizedAnswerId = String(answerId).trim();
+            const normalizedCorrect = String(question.correctAnswer).trim();
+            
+            const isSelected = normalizedSelected === normalizedAnswerId;
+            const isCorrectAnswer = normalizedAnswerId === normalizedCorrect;
+            
+            if (isSubmitted) {
+                // After submission: show correct/incorrect colors
+                if (isCorrectAnswer) {
+                    button.classList.add('correct');
+                } else if (isSelected && !isCorrectAnswer) {
+                    button.classList.add('incorrect');
+                }
+            } else if (isSelected) {
+                // Before submission: show selection highlight
+                button.classList.add('selected');
+            }
+        }
+
+        // Handle answer selection
+        function handleAnswerSelect(answerId) {
+            selectedAnswer = answerId;
+            renderAnswers(); // Re-render to update button states
+            document.getElementById('submit-btn').disabled = false;
+        }
+
+        // Handle submit
+        function handleSubmit() {
+            if (!selectedAnswer || isSubmitted) return;
+            
+            // Normalize for comparison (handles string/number mismatch)
+            const normalizedSelected = String(selectedAnswer).trim();
+            const normalizedCorrect = String(question.correctAnswer).trim();
+            isCorrect = normalizedSelected === normalizedCorrect;
+            
+            // CRITICAL FIX: Update state IMMEDIATELY before any async operations
+            // Previous bug: State was updated after async operations, causing delay
+            isSubmitted = true;
+            
+            // Update DOM immediately - no async operations blocking the UI
+            renderAnswers();
+            
+            // Show result message
+            const resultDiv = document.getElementById('result');
+            if (isCorrect) {
+                resultDiv.textContent = 'Correct! ✓';
+                resultDiv.style.color = '#4caf50';
+            } else {
+                resultDiv.textContent = `Incorrect. The correct answer is ${question.correctAnswer}.`;
+                resultDiv.style.color = '#f44336';
+            }
+            
+            document.getElementById('submit-btn').disabled = true;
+            
+            // If you had async operations (like saving to database), do them here
+            // but the colors are already shown above
+            // Example: saveAnswerToDatabase(selectedAnswer, isCorrect).then(...)
+        }
+
+        // Initialize on page load
+        init();
+    </script>
+</body>
+</html>
+
+
+

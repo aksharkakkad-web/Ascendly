@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { AdvancedAnalytics } from "@/lib/advancedAnalytics";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { TrendingUp, TrendingDown, Clock } from "lucide-react";
+import { loadClassData, clearCache } from "@/lib/jsonLoader";
+import { useEffect, useState } from "react";
 
 // Format label: convert underscores to spaces and title case
 const formatLabel = (label: string): string => {
@@ -39,16 +41,64 @@ interface Props {
   analytics: AdvancedAnalytics;
   open: boolean;
   onClose: () => void;
+  className?: string;
 }
 
-export function AnalyticsDetailModal({ analytics, open, onClose }: Props) {
+export function AnalyticsDetailModal({ analytics, open, onClose, className }: Props) {
+  const [unitNameMap, setUnitNameMap] = useState<Record<string, string>>({});
+
+  // Load class data to get exact unit names from dataset
+  useEffect(() => {
+    if (!className) {
+      setUnitNameMap({});
+      return;
+    }
+    // Clear cache to ensure we get latest unit names from dataset
+    clearCache();
+    loadClassData(className).then((classData) => {
+      if (classData) {
+        const map: Record<string, string> = {};
+        classData.units.forEach((unit) => {
+          // Map exact unitName to itself (primary mapping)
+          map[unit.unitName] = unit.unitName;
+          // Create case-insensitive and trimmed mappings for robustness
+          const lowerTrimmed = unit.unitName.toLowerCase().trim();
+          map[lowerTrimmed] = unit.unitName;
+          // Map trimmed version if different
+          const trimmed = unit.unitName.trim();
+          if (trimmed !== unit.unitName) {
+            map[trimmed] = unit.unitName;
+          }
+        });
+        setUnitNameMap(map);
+      }
+    }).catch(() => {
+      setUnitNameMap({});
+    });
+  }, [className]);
   // Format chart data with formatted labels and abbreviations
-  const formattedDifficulties = analytics.difficulties.map(d => ({
-    ...d,
-    formattedKey: formatLabel(d.key),
-    displayKey: abbreviateLabel(formatLabel(d.key), 18),
-    fullKey: formatLabel(d.key)
-  }));
+  // Filter out "high" and "low" difficulty values
+  // Sort to show Easy, Medium, Hard in that order
+  const difficultyOrder = ['easy', 'medium', 'hard'];
+  const formattedDifficulties = analytics.difficulties
+    .filter(d => {
+      const keyLower = d.key.toLowerCase();
+      return keyLower !== 'high' && keyLower !== 'low';
+    })
+    .map(d => ({
+      ...d,
+      formattedKey: formatLabel(d.key),
+      displayKey: abbreviateLabel(formatLabel(d.key), 18),
+      fullKey: formatLabel(d.key)
+    }))
+    .sort((a, b) => {
+      const aIndex = difficultyOrder.indexOf(a.key.toLowerCase());
+      const bIndex = difficultyOrder.indexOf(b.key.toLowerCase());
+      // Put unknown values at the end
+      const aOrder = aIndex === -1 ? 999 : aIndex;
+      const bOrder = bIndex === -1 ? 999 : bIndex;
+      return aOrder - bOrder;
+    });
   
   const formattedCognitive = analytics.cognitive.map(c => ({
     ...c,
@@ -56,6 +106,20 @@ export function AnalyticsDetailModal({ analytics, open, onClose }: Props) {
     displayKey: abbreviateLabel(formatLabel(c.key), 12),
     fullKey: formatLabel(c.key)
   }));
+
+  // Format stimulus data for chart
+  const formattedStimulusByType = analytics.stimulusAnalytics?.byType 
+    ? Object.entries(analytics.stimulusAnalytics.byType).map(([type, stats]) => ({
+        key: type,
+        formattedKey: formatLabel(type),
+        displayKey: abbreviateLabel(formatLabel(type), 18),
+        fullKey: formatLabel(type),
+        accuracy: stats.accuracy,
+        attempted: stats.attempted,
+        count: stats.count,
+        correct: stats.correct
+      }))
+    : [];
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -123,6 +187,7 @@ export function AnalyticsDetailModal({ analytics, open, onClose }: Props) {
                     />
                     <YAxis 
                       tickFormatter={(v) => `${Math.round(v * 100)}%`}
+                      domain={[0, 1]}
                       tick={{ fontSize: 20, fill: 'hsl(var(--foreground))', fontWeight: 400, fontFamily: 'system-ui, -apple-system, sans-serif' }}
                       width={75}
                       label={{ value: 'Accuracy (%)', angle: -90, position: 'left', offset: 10, style: { fontSize: 18, fontWeight: 500, fontFamily: 'system-ui, -apple-system, sans-serif', fill: 'hsl(var(--muted-foreground))', textAnchor: 'middle' } }}
@@ -159,16 +224,16 @@ export function AnalyticsDetailModal({ analytics, open, onClose }: Props) {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={600}>
-                  <BarChart data={formattedCognitive} margin={{ left: 80, right: 40, bottom: 120, top: 40 }}>
+                  <BarChart data={formattedCognitive} margin={{ left: 80, right: 40, bottom: 60, top: 40 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
                     <XAxis 
                       dataKey="displayKey" 
-                      angle={0}
-                      textAnchor="middle" 
-                      height={120}
+                      angle={-45}
+                      textAnchor="end" 
+                      height={80}
                       interval={0}
-                      tick={{ fontSize: 18, fill: 'hsl(var(--foreground))', fontWeight: 400, fontFamily: 'system-ui, -apple-system, sans-serif' }}
-                      label={{ value: 'Cognitive Level', position: 'insideBottom', offset: -5, style: { fontSize: 18, fontWeight: 500, fontFamily: 'system-ui, -apple-system, sans-serif', fill: 'hsl(var(--muted-foreground))' } }}
+                      tick={{ fontSize: 18, fill: 'hsl(var(--foreground))', fontWeight: 400, fontFamily: 'system-ui, -apple-system, sans-serif', opacity: 1 }}
+                      label={{ value: 'Cognitive Level', position: 'insideBottom', offset: -25, style: { fontSize: 18, fontWeight: 500, fontFamily: 'system-ui, -apple-system, sans-serif', fill: 'hsl(var(--muted-foreground))' } }}
                       allowDataOverflow={false}
                       tickLine={false}
                     />
@@ -200,6 +265,63 @@ export function AnalyticsDetailModal({ analytics, open, onClose }: Props) {
                     <Bar dataKey="accuracy" fill="hsl(var(--chart-3))" name="Accuracy" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Breakdown by Stimulus Type */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-2xl">Performance by Stimulus Type</CardTitle>
+                <CardDescription className="text-base">Accuracy across different types of stimulus (text, tables, graphs)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {formattedStimulusByType.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={550}>
+                    <BarChart data={formattedStimulusByType} margin={{ left: 80, right: 40, bottom: 100, top: 40 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
+                      <XAxis 
+                        dataKey="displayKey" 
+                        tick={{ fontSize: 20, fill: 'hsl(var(--foreground))', fontWeight: 400, fontFamily: 'system-ui, -apple-system, sans-serif' }}
+                        interval={0}
+                        angle={0}
+                        height={100}
+                        label={{ value: 'Stimulus Type', position: 'insideBottom', offset: -5, style: { fontSize: 18, fontWeight: 500, fontFamily: 'system-ui, -apple-system, sans-serif', fill: 'hsl(var(--muted-foreground))' } }}
+                      />
+                      <YAxis 
+                        tickFormatter={(v) => `${Math.round(v * 100)}%`}
+                        tick={{ fontSize: 20, fill: 'hsl(var(--foreground))', fontWeight: 400, fontFamily: 'system-ui, -apple-system, sans-serif' }}
+                        width={75}
+                        label={{ value: 'Accuracy (%)', angle: -90, position: 'left', offset: 10, style: { fontSize: 18, fontWeight: 500, fontFamily: 'system-ui, -apple-system, sans-serif', fill: 'hsl(var(--muted-foreground))', textAnchor: 'middle' } }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          fontSize: '16px', 
+                          padding: '14px 16px', 
+                          fontWeight: 400,
+                          fontFamily: 'system-ui, -apple-system, sans-serif',
+                          backgroundColor: 'hsl(var(--popover))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}
+                        labelFormatter={(label, payload) => {
+                          const data = payload && payload[0]?.payload;
+                          if (data) {
+                            return `${data.fullKey || label} (${data.attempted}/${data.count} attempted)`;
+                          }
+                          return label;
+                        }}
+                        formatter={(value: any) => [`${Math.round(value * 100)}%`, 'Accuracy']}
+                        labelStyle={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', fontFamily: 'system-ui, -apple-system, sans-serif' }}
+                      />
+                      <Bar dataKey="accuracy" fill="hsl(var(--chart-2))" name="Accuracy" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[550px] text-muted-foreground text-lg">
+                    No stimulus data available yet. Answer questions with stimulus to see performance analytics.
+                  </div>
+                )}
               </CardContent>
             </Card>
 

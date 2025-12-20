@@ -8,6 +8,7 @@ import { LandingPage } from "@/components/LandingPage";
 import { AuthPage } from "@/components/AuthPage";
 import { LoginRedirect } from "@/components/LoginRedirect";
 import { Dashboard } from "@/components/Dashboard";
+import { AnimatedRoute } from "@/components/AnimatedRoute";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -19,14 +20,16 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginRedirect />} />
-            <Route path="/auth/:role" element={<AuthPage />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AnimatedRoute>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<LoginRedirect />} />
+              <Route path="/auth/:role" element={<AuthPage />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AnimatedRoute>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

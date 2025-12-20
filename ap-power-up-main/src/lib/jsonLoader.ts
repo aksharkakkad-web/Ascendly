@@ -1,13 +1,13 @@
 // JSON Loader Utility for Enhanced Question Structure
 // This file handles loading question data from JSON files dynamically
 
-import { ClassData, Question, Unit, Subtopic, initializeUserState, initializeMetadata } from './questionData';
+import { ClassData, Question, Unit, Subtopic, initializeUserState, initializeMetadata, deriveStimulusMeta, StimulusItem } from './questionData';
 
 // Cache for loaded class data
 const classDataCache: Map<string, ClassData> = new Map();
 
 /**
- * Load class data from JSON file
+ * Load class data from API or JSON file (fallback)
  * @param className - Name of the AP class (e.g., "AP Biology")
  * @returns Promise<ClassData | null>
  */
@@ -19,6 +19,155 @@ export async function loadClassData(className: string): Promise<ClassData | null
     return cached;
   }
 
+  // Try API first, but check if data is complete
+  try {
+    const { questionApi } = await import('./api');
+    const questions = await questionApi.getQuestions({ apClass: className });
+    
+    if (questions && questions.length > 0) {
+      // Check if API questions have correct_answer_id populated
+      // If more than 50% are missing correct_answer_id, fall back to JSON
+      const questionsWithCorrectAnswer = questions.filter((q: any) => 
+        q.correct_answer_id || q.correctAnswerId || q.correctOptionId || q.answer
+      ).length;
+      const completenessRatio = questionsWithCorrectAnswer / questions.length;
+      
+      // Also check if API questions have stimulus data (either at root or in metadata)
+      // Count questions that have stimulus
+      const questionsWithStimulus = questions.filter((q: any) => {
+        if (q.stimulus && Array.isArray(q.stimulus) && q.stimulus.length > 0) return true;
+        if (q.metadata) {
+          let metadata = q.metadata;
+          if (typeof metadata === 'string') {
+            try { metadata = JSON.parse(metadata); } catch (e) { return false; }
+          }
+          if (metadata && metadata.stimulus && Array.isArray(metadata.stimulus) && metadata.stimulus.length > 0) return true;
+        }
+        return false;
+      }).length;
+      
+      const stimulusCompletenessRatio = questionsWithStimulus / questions.length;
+      
+      // Fall back to JSON if correct answers are missing OR if stimulus data is missing
+      // (only use API if both correct answers AND stimulus are present)
+      if (completenessRatio < 0.5) {
+        console.warn(`[JSON LOADER] API data incomplete (${Math.round(completenessRatio * 100)}% have correct answers). Falling back to JSON.`);
+        // Fall through to JSON loading
+      } else if (stimulusCompletenessRatio < 0.1) {
+        // If less than 10% have stimulus, API is likely missing stimulus data - use JSON
+        console.warn(`[JSON LOADER] API data missing stimulus (only ${Math.round(stimulusCompletenessRatio * 100)}% have stimulus). Falling back to JSON for complete data.`);
+        // Fall through to JSON loading
+      } else {
+        // Transform API questions to ClassData format
+        // Group by unit and subtopic
+        const unitsMap = new Map<string, Map<string, any[]>>();
+        
+        questions.forEach((q: any) => {
+          const unitName = q.unit_name;
+          const subtopicName = q.subtopic_name || 'General';
+          
+          if (!unitsMap.has(unitName)) {
+            unitsMap.set(unitName, new Map());
+          }
+          
+          const subtopicsMap = unitsMap.get(unitName)!;
+          if (!subtopicsMap.has(subtopicName)) {
+            subtopicsMap.set(subtopicName, []);
+          }
+          
+          // Extract stimulus from multiple possible locations
+          // Try root level first, then metadata (handle both object and string)
+          let stimulus: any[] = [];
+          if (q.stimulus) {
+            // Handle both array and null
+            if (Array.isArray(q.stimulus)) {
+              stimulus = q.stimulus;
+            }
+          } else if (q.metadata) {
+            // Handle metadata as object or JSON string
+            let metadata = q.metadata;
+            if (typeof metadata === 'string') {
+              try {
+                metadata = JSON.parse(metadata);
+              } catch (e) {
+                console.warn(`[JSON LOADER] Failed to parse metadata JSON for question ${q.id}`);
+                metadata = {};
+              }
+            }
+            if (metadata && metadata.stimulus !== undefined && metadata.stimulus !== null) {
+              if (Array.isArray(metadata.stimulus)) {
+                stimulus = metadata.stimulus;
+              }
+            }
+          }
+          
+          // Extract stimulusMeta similarly
+          let stimulusMeta: any = undefined;
+          if (q.stimulusMeta) {
+            stimulusMeta = q.stimulusMeta;
+          } else if (q.metadata) {
+            let metadata = q.metadata;
+            if (typeof metadata === 'string') {
+              try {
+                metadata = JSON.parse(metadata);
+              } catch (e) {
+                metadata = {};
+              }
+            }
+            if (metadata && metadata.stimulusMeta) {
+              stimulusMeta = metadata.stimulusMeta;
+            }
+          }
+          
+          // Derive stimulusMeta if not found
+          if (!stimulusMeta) {
+            stimulusMeta = deriveStimulusMeta(stimulus);
+          }
+          
+          const correctAnswerId = q.correct_answer_id || q.correctAnswerId || q.correctOptionId || q.answer || '';
+          
+          if (!correctAnswerId) {
+            console.warn(`[JSON LOADER] API question ${q.id} is missing correct_answer_id`);
+          }
+          
+          subtopicsMap.get(subtopicName)!.push({
+            id: q.id,
+            questionText: q.question_text,
+            options: q.options,
+            correctAnswerId,
+            explanation: q.explanation || '',
+            metadata: q.metadata || {},
+            stimulus: stimulus && stimulus.length > 0 ? stimulus : undefined,
+            stimulusMeta: stimulusMeta && stimulusMeta.hasStimulus ? stimulusMeta : undefined,
+          });
+        });
+        
+        const classData: ClassData = {
+          className,
+          units: Array.from(unitsMap.entries()).map(([unitName, subtopicsMap]) => ({
+            unitName,
+            subtopics: Array.from(subtopicsMap.entries()).map(([subtopicName, questions]) => ({
+              subtopicName,
+              questions
+            }))
+          }))
+        };
+        
+        if (classData.units.length > 0) {
+          classDataCache.set(className, classData);
+          const totalQuestions = classData.units.reduce((sum, unit) => 
+            sum + unit.subtopics.reduce((s, st) => s + st.questions.length, 0), 0
+          );
+          console.log(`[JSON LOADER] Loaded ${classData.units.length} units with ${totalQuestions} total questions from API for ${className}`);
+          return classData;
+        }
+      }
+    }
+  } catch (error) {
+    console.warn(`[JSON LOADER] Failed to load from API, falling back to JSON:`, error);
+  }
+
+  // Fallback to JSON files
   try {
     // Convert className to filename (replace spaces and special chars)
     // Handle special cases for class names with colons, spaces, etc.
@@ -73,15 +222,38 @@ export async function loadClassData(className: string): Promise<ClassData | null
               skillTags: q?.metadata?.skillTags || [],
             };
 
+            // Load stimulus data - ensure it's properly typed
+            const stimulus: StimulusItem[] = Array.isArray(q.stimulus) ? q.stimulus : [];
+            const stimulusMeta = q.stimulusMeta || deriveStimulusMeta(stimulus);
+
+            // Debug logging for stimulus
+            if (stimulus.length > 0) {
+              console.log(`[JSON LOADER] Question ${q.id || 'unknown'} has ${stimulus.length} stimulus items:`, stimulus.map(s => s.type));
+            }
+
+            // Ensure correctAnswerId is set - check all possible field names
+            const correctAnswerId = q.correctAnswerId || 
+                                   q.correctOptionId || 
+                                   q.correct_answer_id || 
+                                   q.answer || 
+                                   '';
+            
+            // Log warning if correctAnswerId is missing
+            if (!correctAnswerId && q.id) {
+              console.warn(`[JSON LOADER] Question ${q.id} is missing correctAnswerId. Available fields:`, Object.keys(q));
+            }
+            
             return {
               id: q.id || "",
               questionText: q.questionText || q.question || "",
               options,
-              correctAnswerId: q.correctAnswerId || q.correctOptionId || q.answer || "",
+              correctAnswerId,
               explanation: q.explanation || "",
               commonMistakePatterns: q.commonMistakePatterns || [],
               metadata,
               userState: { ...initializeUserState(), ...(q.userState || {}) },
+              stimulus: stimulus.length > 0 ? stimulus : undefined,
+              stimulusMeta: stimulusMeta.hasStimulus ? stimulusMeta : undefined,
             };
           }),
         })),
@@ -122,8 +294,6 @@ export function getAllClassNames(): string[] {
     "AP English III: Language & Composition",
     "AP English IV: Literature & Composition",
     "AP Environmental Science",
-    "AP French",
-    "AP Latin",
     "AP Macroeconomics",
     "AP Microeconomics",
     "AP Physics 1: Algebra-Based",
@@ -131,7 +301,6 @@ export function getAllClassNames(): string[] {
     "AP Physics C",
     "AP Pre-Calculus",
     "AP Psychology",
-    "AP Spanish Language & Culture",
     "AP Statistics",
     "AP US History",
     "AP World History",

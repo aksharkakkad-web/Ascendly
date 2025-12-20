@@ -10,8 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { addCustomQuestion } from "@/lib/quizData";
-import { getUnitsForClass } from "@/lib/jsonLoader";
-import { getLeaderboard, getClassRoster, User, getClassScore, getTeacherClassStudents, getTeacherClassLeaderboard, getTotalScore, getDisplayName, getUserQuizHistory, getClassByTeacherAndSubject, updateClassLeaderboardSetting, getClassAggregatedAnalytics, ClassAnalytics } from "@/lib/database";
+import { getUnitsForClass, loadClassData } from "@/lib/jsonLoader";
+import { getLeaderboard, getClassRoster, User, getClassScore, getTeacherClassStudents, getTeacherClassLeaderboard, getTotalScore, getDisplayName, getUserQuizHistory, getClassByTeacherAndSubject, updateClassLeaderboardSetting, getClassAggregatedAnalytics, ClassAnalytics, QuizResult } from "@/lib/database";
+import { PerformanceAnalytics } from "./PerformanceAnalytics";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { deleteUserAccount } from "@/lib/database";
 import { 
@@ -36,6 +37,28 @@ export function TeacherDashboard() {
   const [viewingStudent, setViewingStudent] = useState<User | null>(null);
   const [classAnalytics, setClassAnalytics] = useState<{ studentId: string; analytics: ClassAnalytics }[]>([]);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [studentHistory, setStudentHistory] = useState<QuizResult[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Load student history when viewingStudent changes
+  useEffect(() => {
+    if (viewingStudent) {
+      setLoadingHistory(true);
+      getUserQuizHistory(viewingStudent.id)
+        .then((history) => {
+          setStudentHistory(history);
+          setLoadingHistory(false);
+        })
+        .catch((error) => {
+          console.error('Error loading student history:', error);
+          setStudentHistory([]);
+          setLoadingHistory(false);
+        });
+    } else {
+      setStudentHistory([]);
+      setLoadingHistory(false);
+    }
+  }, [viewingStudent]);
 
   if (!user) {
     navigate('/');
@@ -47,7 +70,16 @@ export function TeacherDashboard() {
   
   useEffect(() => {
     if (activeClass) {
-      getUnitsForClass(activeClass).then(setUnits);
+      // Load classData to get exact unit names from dataset
+      loadClassData(activeClass).then((classData) => {
+        if (classData) {
+          // Use exact unitName from dataset
+          const unitNames = classData.units.map(u => u.unitName);
+          setUnits(unitNames);
+        } else {
+          setUnits([]);
+        }
+      });
     } else {
       setUnits([]);
     }
@@ -144,8 +176,11 @@ export function TeacherDashboard() {
               <div className="text-sm opacity-80">Teacher • {user.apClasses.length} Classes</div>
             </div>
           </div>
-          <Button variant="ghost" onClick={handleLogout} className="text-primary-foreground hover:bg-primary-foreground/10">
-            <LogOut className="w-5 h-5 mr-2" />
+          <Button
+            variant="ghost"
+            onClick={handleLogout}
+            className="text-primary-foreground hover:bg-primary-foreground/10"
+          >
             Logout
           </Button>
         </div>
@@ -286,7 +321,11 @@ export function TeacherDashboard() {
             </div>
 
             {/* Tab Content */}
-            <Card variant="elevated" className="animate-fade-in">
+            <Card variant="elevated" className="overflow-hidden">
+              <div 
+                key={activeTab}
+                className="animate-in fade-in slide-in-from-left-4 duration-300"
+              >
               {activeTab === 'roster' ? (
                 <>
                   <CardHeader>
@@ -345,6 +384,16 @@ export function TeacherDashboard() {
                     )}
                   </CardContent>
                 </>
+              ) : activeTab === 'analytics' ? (
+                <CardContent className="p-0">
+                  <PerformanceAnalytics
+                    userId={user.id}
+                    classNames={user.apClasses}
+                    isTeacher={true}
+                    teacherId={user.id}
+                    compact={false}
+                  />
+                </CardContent>
               ) : activeTab === 'leaderboard' ? (
                 <>
                   <CardHeader>
@@ -395,122 +444,8 @@ export function TeacherDashboard() {
                     )}
                   </CardContent>
                 </>
-              ) : (
-                <>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-primary" />
-                      Student Analytics
-                    </CardTitle>
-                    <CardDescription>Performance metrics for {activeClass}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {loadingAnalytics ? (
-                      <div className="text-center py-12 text-muted-foreground">
-                        Loading analytics...
-                      </div>
-                    ) : classAnalytics.length > 0 ? (
-                      <div className="space-y-6">
-                        {classAnalytics.map(({ studentId, analytics }) => {
-                          const student = roster.find(s => s.id === studentId);
-                          if (!student) return null;
-                          
-                          return (
-                            <Card key={studentId} className="border">
-                              <CardHeader>
-                                <CardTitle className="text-lg">{getDisplayName(student)}</CardTitle>
-                                <CardDescription>
-                                  {analytics.attemptedQuestions}/{analytics.totalQuestions} questions attempted • 
-                                  {analytics.averageAccuracy.toFixed(1)}% accuracy
-                                </CardDescription>
-                              </CardHeader>
-                              <CardContent className="space-y-4">
-                                {/* Overall Stats */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                  <div className="p-3 rounded-lg bg-muted/50">
-                                    <div className="text-lg font-bold">{analytics.totalAttempts}</div>
-                                    <div className="text-xs text-muted-foreground">Total Attempts</div>
-                                  </div>
-                                  <div className="p-3 rounded-lg bg-muted/50">
-                                    <div className="text-lg font-bold">{analytics.totalCorrectAttempts}</div>
-                                    <div className="text-xs text-muted-foreground">Correct</div>
-                                  </div>
-                                  <div className="p-3 rounded-lg bg-muted/50">
-                                    <div className="text-lg font-bold">{analytics.correctQuestions}</div>
-                                    <div className="text-xs text-muted-foreground">Mastered</div>
-                                  </div>
-                                  <div className="p-3 rounded-lg bg-muted/50">
-                                    <div className="text-lg font-bold">{analytics.averageAccuracy.toFixed(1)}%</div>
-                                    <div className="text-xs text-muted-foreground">Accuracy</div>
-                                  </div>
-                                </div>
-
-                                {/* Units */}
-                                <div className="space-y-3">
-                                  <h4 className="font-semibold text-sm">Units</h4>
-                                  {analytics.units.map((unit) => (
-                                    <div key={unit.unitName} className="p-4 rounded-lg border bg-card">
-                                      <div className="flex items-center justify-between mb-2">
-                                        <h5 className="font-medium">{unit.unitName}</h5>
-                                        <span className="text-sm font-bold text-secondary">
-                                          {unit.averageAccuracy.toFixed(1)}%
-                                        </span>
-                                      </div>
-                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                                        <div>
-                                          <span className="text-muted-foreground">Attempted: </span>
-                                          <span className="font-medium">{unit.attemptedQuestions}/{unit.totalQuestions}</span>
-                                        </div>
-                                        <div>
-                                          <span className="text-muted-foreground">Attempts: </span>
-                                          <span className="font-medium">{unit.totalAttempts}</span>
-                                        </div>
-                                        <div>
-                                          <span className="text-muted-foreground">Correct: </span>
-                                          <span className="font-medium">{unit.totalCorrectAttempts}</span>
-                                        </div>
-                                        <div>
-                                          <span className="text-muted-foreground">Mastered: </span>
-                                          <span className="font-medium">{unit.correctQuestions}</span>
-                                        </div>
-                                      </div>
-                                      
-                                      {/* Subtopics */}
-                                      <div className="mt-3 space-y-2">
-                                        {unit.subtopics.map((subtopic) => (
-                                          <div key={subtopic.subtopicName} className="p-2 rounded bg-muted/30 text-xs">
-                                            <div className="flex items-center justify-between">
-                                              <span className="font-medium">{subtopic.subtopicName}</span>
-                                              <span className="text-secondary font-bold">
-                                                {subtopic.averageAccuracy.toFixed(1)}%
-                                              </span>
-                                            </div>
-                                            <div className="text-muted-foreground mt-1">
-                                              {subtopic.attemptedQuestions}/{subtopic.totalQuestions} questions • 
-                                              {subtopic.totalAttempts} attempts • 
-                                              Avg streak: {subtopic.averageStreak.toFixed(1)}
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                        <p>No analytics data available yet.</p>
-                        <p className="text-sm">Analytics will appear as students practice questions.</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </>
-              )}
+              ) : null}
+              </div>
             </Card>
           </div>
 
@@ -643,11 +578,15 @@ export function TeacherDashboard() {
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={() => {
-                          deleteUserAccount(user.id);
-                          logout();
-                          navigate('/');
-                          toast.success("Account deleted");
+                        onClick={async () => {
+                          const result = await deleteUserAccount(user.id);
+                          if (result.success) {
+                            await logout();
+                            navigate('/');
+                            toast.success(result.message || "Account deleted");
+                          } else {
+                            toast.error(result.message || "Failed to delete account");
+                          }
                         }}
                       >
                         Delete Account
@@ -665,7 +604,6 @@ export function TeacherDashboard() {
       <Dialog open={!!viewingStudent} onOpenChange={(open) => !open && setViewingStudent(null)}>
         <DialogContent className="max-w-md">
           {viewingStudent && (() => {
-            const studentHistory = getUserQuizHistory(viewingStudent.id);
             const totalQuizzes = studentHistory.length;
             const avgAccuracy = totalQuizzes > 0 
               ? Math.round(studentHistory.reduce((sum, q) => sum + (q.score / q.totalQuestions) * 100, 0) / totalQuizzes)
@@ -686,6 +624,9 @@ export function TeacherDashboard() {
                   </DialogTitle>
                 </DialogHeader>
                 
+                {loadingHistory ? (
+                  <div className="text-center py-8 text-muted-foreground">Loading student history...</div>
+                ) : (
                 <div className="space-y-4 mt-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3 rounded-xl bg-muted text-center">
@@ -752,6 +693,7 @@ export function TeacherDashboard() {
                     </div>
                   )}
                 </div>
+                )}
               </>
             );
           })()}

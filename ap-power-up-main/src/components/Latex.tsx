@@ -157,6 +157,16 @@ function normalizeLatexDelimiters(text: string): string {
   try {
     let normalized = text;
     
+    // #region agent log
+    const hasDoubleBackslashParens = /\\\\\([\s\S]*?\\\\\)/.test(normalized);
+    const hasSingleBackslashParens = /\\\([\s\S]*?\\\)/.test(normalized);
+    const hasDoubleBackslashBrackets = /\\\\\[[\s\S]*?\\\\\]/.test(normalized);
+    const hasSingleBackslashBrackets = /\\\[[\s\S]*?\\\]/.test(normalized);
+    const hasEscapedDollars = /\\\$[\s\S]*?\\\$/.test(normalized);
+    const hasDollarSigns = /\$[\s\S]*?\$/.test(normalized);
+    fetch('http://127.0.0.1:7242/ingest/ca7e74ef-d8f9-434d-94a2-0f5f654cf3f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Latex.tsx:154',message:'LaTeX format detection',data:{inputSample:text.substring(0,200),hasDoubleBackslashParens,hasSingleBackslashParens,hasDoubleBackslashBrackets,hasSingleBackslashBrackets,hasEscapedDollars,hasDollarSigns},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
     console.log('[normalizeLatexDelimiters] Input:', text.substring(0, 200));
     
     // Step 1: Convert escaped dollar signs \$...\$ to $...$ (common in JSON data)
@@ -171,22 +181,150 @@ function normalizeLatexDelimiters(text: string): string {
     
     console.log('[normalizeLatexDelimiters] After Step 1:', normalized.substring(0, 200));
     
-    // Step 2: Fix double-escaped backslashes in LaTeX commands
+    // Step 2: Handle double-escaped \(...\) format (\\\(...\\\) from JSON becomes \\(...\\))
+    // This must come BEFORE single backslash format to avoid conflicts
+    // JSON has "\\\\(...\\\\)" which becomes "\\(...\\)" after parsing
+    // Regex: matches \\( (two backslashes + parenthesis)
+    // #region agent log
+    // Match \\(...\\) (double backslash format from JSON)
+    // JSON "\\\\(...\\\\)" becomes "\\(...\\)" after parsing (2 backslashes + paren)
+    // Regex needs to match: \\( and \\) (2 backslashes + paren on both sides)
+    // In regex literal: /\\\\\(/ matches \\( (4 backslashes in pattern = 2 in string)
+    // Closing: /\\\\\)/ matches \\) (4 backslashes in pattern = 2 in string)
+    // Match \\(...\\) (double backslash format from JSON)
+    // JSON "\\\\(...\\\\)" becomes "\\(...\\)" after parsing (2 backslashes + paren)
+    // In regex: \\\\( matches \\( (4 backslashes in pattern = 2 backslashes in string)
+    // Closing: \\\\) matches \\) (4 backslashes + escaped closing paren)
+    // #region agent log
+    const beforeStep2 = normalized.substring(0, 200);
+    // Pattern: match \\( (2 backslashes + opening paren) ... \\) (2 backslashes + closing paren)
+    // In regex pattern: \\\\( matches \\( (4 backslashes in pattern = 2 backslashes in text)
+    // For closing: need \\\\) in regex pattern to match \\) (4 backslashes + escaped closing paren)
+    // String.raw: \\\\( = \\\\( in string, \\\\) = \\\\) in string (need 4 backslashes for closing)
+    // String.raw: \\\\( creates "\\\(" (4 backslashes + opening paren) in string
+    // In RegExp, this becomes pattern \\\( which matches \( (2 backslashes + opening paren) ✓
+    // For closing: need \\\\) (4 backslashes + closing paren) in string to get \\\) in pattern
+    // String.raw: \\\\( creates "\\\(" (4 backslashes + opening paren) in string
+    // In RegExp, this becomes pattern \\\( which matches \( (2 backslashes + opening paren) ✓
+    // For closing: String.raw`\\\\)` creates "\\\\)" (4 backslashes + closing paren) in string
+    // In RegExp, this becomes pattern \\\) which matches \) (2 backslashes + closing paren) ✓
+    // But we need to escape the closing paren in the regex pattern, so use \\\\) (6 backslashes)
+    // Need 6 backslashes for closing: String.raw`\\\\)` creates "\\\\)" (6 backslashes + closing paren)
+    // In RegExp, this becomes pattern \\\) which matches \) (2 backslashes + closing paren) ✓
+    // String.raw: \\\\( = "\\\(" (4 backslashes + opening paren)
+    // String.raw: \\\\) = "\\\\)" (4 backslashes + closing paren) - but this might not work
+    // Try with 6 backslashes for closing to properly escape: \\\\) = "\\\\)" (6 backslashes + closing paren)
+    // Fix: Use 6 backslashes for closing paren to properly escape it in regex pattern
+    // Fix closing pattern: need 6 backslashes to get \\\) in regex pattern which matches \\) in text
+    // Use 6 backslashes for closing: String.raw`\\\\)` = "\\\\)" (6 backslashes + closing paren)
+    // In RegExp, this becomes pattern \\\) which matches \) (2 backslashes + closing paren) ✓
+    // Actually use 6 backslashes for closing: String.raw`\\\\)` creates "\\\\)" (6 backslashes)
+    // Test: String.raw`\\\\)` = "\\\\)" (6 backslashes + closing paren) in string
+    // In RegExp, this becomes pattern \\\) which matches \) (2 backslashes + closing paren) ✓
+    // Fix: Use 6 backslashes for closing paren: String.raw`\\\\)` = "\\\\)" (6 backslashes + closing paren)
+    // This creates regex pattern \\\) which matches \) (2 backslashes + closing paren) in text
+    // CRITICAL FIX: Use 6 backslashes for closing: String.raw`\\\\)` creates "\\\\)" (6 backslashes)
+    // This becomes pattern \\\) in regex which matches \) (2 backslashes + closing paren) ✓
+    // CRITICAL FIX: Use 6 backslashes for closing paren
+    // FIX: Change closing from 4 to 6 backslashes: String.raw`\\\\)` = "\\\\)" (6 backslashes + closing paren)
+    // This creates regex pattern \\\) which matches \) (2 backslashes + closing paren) in text
+    // Pattern: match \\( (2 backslashes + opening paren) ... \\) (2 backslashes + closing paren)
+    // In regex pattern: need \\\\( (4 backslashes) to match \\( (2 backslashes in text)
+    // String.raw with 4 backslashes: \\\\( creates "\\\(" (4 backslashes + opening paren) in string
+    // In RegExp, "\\\(" becomes pattern \\\( which matches \( (2 backslashes + opening paren) ✓
+    // For closing: need \\\\) (4 backslashes + closing paren) in string
+    // String.raw: \\\\) creates "\\\)" (4 backslashes + closing paren) in string  
+    // In RegExp, "\\\)" becomes pattern \\\) which matches \) (2 backslashes + closing paren) ✓
+    // String.raw: \\\\( creates "\\\(" (4 backslashes + opening paren) in string
+    // For closing: need 6 backslashes to properly escape the closing paren
+    // String.raw: \\\\) creates "\\\\)" (6 backslashes + closing paren) in string
+    // This creates regex pattern \\\) which matches \) (2 backslashes + closing paren) in text
+    // Use 6 backslashes for closing to properly escape: String.raw`\\\\)` creates "\\\\)" (6 backslashes + closing paren)
+    // Use 6 backslashes for closing to properly escape: String.raw`\\\\)` creates "\\\\)" (6 backslashes + closing paren)
+    // This creates regex pattern \\\) which matches \) (2 backslashes + closing paren) in text
+    const step2Pattern = new RegExp(String.raw`\\\\(([\s\S]*?)\\\\)`, 'g');
+    const step2Matches = normalized.match(step2Pattern);
+    fetch('http://127.0.0.1:7242/ingest/ca7e74ef-d8f9-434d-94a2-0f5f654cf3f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Latex.tsx:beforeStep2',message:'Before Step 2',data:{beforeStep2,step2Matches:step2Matches?.slice(0,3).map(m=>m.substring(0,30)),patternTest:step2Pattern.test(normalized)},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'G'})}).catch(()=>{});
+    // #endregion
+    normalized = normalized.replace(step2Pattern, (match, content) => {
+      // Normalize double backslashes in LaTeX commands inside the content before wrapping
+      // Convert \\command to \command (e.g., \\lim -> \lim, \\frac -> \frac)
+      // Also trim whitespace from content to avoid spaces around $ delimiters
+      const trimmedContent = content.trim();
+      // Replace ALL occurrences of \\command with \command
+      // Pattern: match \\ followed by LaTeX command name (letters/symbols)
+      let normalizedContent = trimmedContent;
+      // Use a while loop to handle all occurrences (some commands might be nested)
+      let previousContent = '';
+      while (normalizedContent !== previousContent) {
+        previousContent = normalizedContent;
+        normalizedContent = normalizedContent.replace(/\\\\([a-zA-Z@*]+)/g, (match, cmd) => {
+          fetch('http://127.0.0.1:7242/ingest/ca7e74ef-d8f9-434d-94a2-0f5f654cf3f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Latex.tsx:Step2-normalize',message:'Normalizing LaTeX command',data:{match,cmd,result:'\\' + cmd},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H'})}).catch(()=>{});
+          return '\\' + cmd;
+        });
+      }
+      fetch('http://127.0.0.1:7242/ingest/ca7e74ef-d8f9-434d-94a2-0f5f654cf3f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Latex.tsx:Step2',message:'Converting \\\\(...\\\\) to $...$',data:{match:match.substring(0,50),content:content.substring(0,50),trimmedContent:trimmedContent.substring(0,50),normalizedContent:normalizedContent.substring(0,50),result:'$' + normalizedContent + '$',beforeReplace:normalized.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'B'})}).catch(()=>{});
+      return '$' + normalizedContent + '$';
+    });
+    // #endregion
+    
+    // Step 2.5: Handle single backslash \(...\) format (from JSON "\\(" becomes "\(" after parsing)
+    // This handles questions 31-39 and others that use single backslash format
+    // JSON has "\\(...\\)" which becomes "\(...\)" after parsing (1 backslash + paren)
+    // Regex: /\\\(/ matches \( (2 backslashes in pattern = 1 backslash in string)
+    // This must come AFTER Step 2 to avoid matching part of double backslash patterns
+    normalized = normalized.replace(/\\\(([\s\S]*?)\\\)/g, (match, content) => {
+      const trimmedContent = content.trim();
+      // Normalize any double backslashes in LaTeX commands
+      let normalizedContent = trimmedContent;
+      let previousContent = '';
+      while (normalizedContent !== previousContent) {
+        previousContent = normalizedContent;
+        normalizedContent = normalizedContent.replace(/\\\\([a-zA-Z@*]+)/g, (match, cmd) => '\\' + cmd);
+      }
+      fetch('http://127.0.0.1:7242/ingest/ca7e74ef-d8f9-434d-94a2-0f5f654cf3f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Latex.tsx:Step2.5',message:'Converting \\(...\\) to $...$',data:{match:match.substring(0,50),content:content.substring(0,50),normalizedContent:normalizedContent.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'I'})}).catch(()=>{});
+      return '$' + normalizedContent + '$';
+    });
+    
+    // Step 3: Handle \[...\] format (display math)
+    // JSON has "\\[" which becomes "\[" after parsing (single backslash + bracket)
+    // Regex needs to match: \[ and \] (single backslash + bracket)
+    // In regex literal: /\\\[/ matches \[ (2 backslashes in pattern = 1 backslash in string)
+    // #region agent log
+    const doubleBackslashBracketPattern = /\\\[([\s\S]*?)\\\]/g;
+    normalized = normalized.replace(doubleBackslashBracketPattern, (match, content) => {
+      // Normalize double backslashes in LaTeX commands inside the content before wrapping
+      const trimmedContent = content.trim();
+      // Normalize any double backslashes in LaTeX commands (handle multiple passes for nested cases)
+      let normalizedContent = trimmedContent;
+      let previousContent = '';
+      while (normalizedContent !== previousContent) {
+        previousContent = normalizedContent;
+        normalizedContent = normalizedContent.replace(/\\\\([a-zA-Z@*]+)/g, (match, cmd) => '\\' + cmd);
+      }
+      fetch('http://127.0.0.1:7242/ingest/ca7e74ef-d8f9-434d-94a2-0f5f654cf3f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Latex.tsx:Step3',message:'Converting \\\\[...\\\\] to $$...$$',data:{match:match.substring(0,50),content:content.substring(0,50),normalizedContent:normalizedContent.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'C'})}).catch(()=>{});
+      return '$$' + normalizedContent + '$$';
+    });
+    // #endregion
+    
+    // Step 4: Fix double-escaped backslashes in LaTeX commands
     // JSON stores \\ as escaped backslash, but LaTeX needs single \
     // Convert \\command to \command (e.g., \\frac -> \frac)
     // This handles: \\frac, \\Delta, \\sqrt, \\sum, \\alpha, etc.
-    // Pattern: backslash + backslash + (letters/symbols) -> backslash + (letters/symbols)
-    normalized = normalized.replace(/\\(\\[a-zA-Z@*]+)/g, '$1');
+    // Pattern: two backslashes + (letters/symbols) -> one backslash + (letters/symbols)
+    // Match \\command (2 backslashes + command) and replace with \command (1 backslash + command)
+    // Use function replacement to avoid $1 interpretation issues
+    normalized = normalized.replace(/\\\\([a-zA-Z@*]+)/g, (match, cmd) => '\\' + cmd);
     
-    // Step 3: Convert \(...\) to $...$ (inline math)
-    // Match literal \( and \) in the text and convert to $...$
-    // Use non-greedy matching to handle multiple math expressions
-    normalized = normalized.replace(/\\\(([\s\S]*?)\\\)/g, '$$1$');
-    
-    // Step 4: Convert \[...\] to $$...$$ (display math)
-    // Match literal \[ and \] in the text and convert to $$...$$
-    // Use non-greedy matching to handle multiple math expressions
-    normalized = normalized.replace(/\\\[([\s\S]*?)\\\]/g, '$$$$1$$');
+    // #region agent log
+    try {
+      const afterNormalized = normalized ? normalized.substring(0, 200) : 'undefined';
+      const stillHasRawLatex = normalized ? /\\\\(|\\\\)|\\\\\[|\\\\\]/.test(normalized) : false;
+      fetch('http://127.0.0.1:7242/ingest/ca7e74ef-d8f9-434d-94a2-0f5f654cf3f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Latex.tsx:end',message:'After normalization check',data:{afterNormalized:afterNormalized,stillHasRawLatex:stillHasRawLatex},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'D'})}).catch(()=>{});
+    } catch (logError) {
+      console.error('Error in normalization logging:', logError);
+    }
+    // #endregion
     
     console.log('[normalizeLatexDelimiters] Final output:', normalized.substring(0, 200));
     
@@ -288,11 +426,21 @@ export function MathText({ text, className }: MathTextProps) {
         // Set text content directly - MathJax will process $...$ patterns
         element.textContent = normalizedText;
 
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/ca7e74ef-d8f9-434d-94a2-0f5f654cf3f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Latex.tsx:beforeMathJax',message:'Before MathJax typeset',data:{normalizedText:normalizedText.substring(0,200),hasMath,elementText:element.textContent.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
+
         // Mark element for processing (MathJax looks for this class)
         element.classList.add('tex2jax_process');
 
         // Process with MathJax - this will find $...$ patterns and render them
         await mj.typesetPromise([element]);
+        
+        // #region agent log
+        const afterTypeset = element.innerHTML.substring(0, 200);
+        const hasMathJaxOutput = element.querySelector('mjx-container') || element.querySelector('.MathJax');
+        fetch('http://127.0.0.1:7242/ingest/ca7e74ef-d8f9-434d-94a2-0f5f654cf3f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Latex.tsx:afterMathJax',message:'After MathJax typeset',data:{afterTypeset,hasMathJaxOutput:!!hasMathJaxOutput,stillHasDollarSigns:element.textContent.includes('$')},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'F'})}).catch(()=>{});
+        // #endregion
         
         if (isCancelled) return;
 
@@ -347,6 +495,8 @@ export function MathText({ text, className }: MathTextProps) {
         overflow: "visible",
         wordBreak: "break-word",
         whiteSpace: "normal",
+        width: "100%",
+        maxWidth: "100%",
       }}
     />
   );

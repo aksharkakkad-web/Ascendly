@@ -6,15 +6,10 @@ import { AdvancedAnalytics } from "@/lib/advancedAnalytics";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { formatTag } from "@/lib/utils";
 
-// Format label: convert underscores to spaces and title case
-const formatLabel = (label: string): string => {
-  return label
-    .replace(/_/g, ' ')
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
-};
+// Format label: convert underscores to spaces and title case (alias for formatTag for backward compatibility)
+const formatLabel = formatTag;
 
 // Abbreviate label for display while keeping full text for tooltips
 const abbreviateLabel = (label: string, maxLength: number = 15): string => {
@@ -40,15 +35,15 @@ interface Props {
   analytics: AdvancedAnalytics;
   open: boolean;
   onClose: () => void;
-  onSkillSelect?: (skill: typeof analytics.skills[0]) => void;
+  onSkillSelect?: (skill: AdvancedAnalytics['skills'][0]) => void;
 }
 
 export function SkillAnalysisDetailModal({ analytics, open, onClose, onSkillSelect }: Props) {
-  const [selectedSkill, setSelectedSkill] = useState<typeof analytics.skills[0] | null>(
+  const [selectedSkill, setSelectedSkill] = useState<AdvancedAnalytics['skills'][0] | null>(
     (analytics as any).selectedSkill || null
   );
 
-  const handleSkillClick = (skill: typeof analytics.skills[0]) => {
+  const handleSkillClick = (skill: AdvancedAnalytics['skills'][0]) => {
     setSelectedSkill(skill);
     if (onSkillSelect) onSkillSelect(skill);
   };
@@ -64,12 +59,18 @@ export function SkillAnalysisDetailModal({ analytics, open, onClose, onSkillSele
     : null;
 
   // Format skills data with formatted labels and abbreviations for chart
-  const formattedSkills = analytics.skills.slice(0, 20).map(s => ({
-    ...s,
-    formattedSkill: formatLabel(s.skill),
-    displaySkill: abbreviateLabel(formatLabel(s.skill), 12),
-    fullSkill: formatLabel(s.skill)
-  }));
+  // Only include skills that have actually been attempted in the accuracy chart.
+  // This avoids showing 0% for skills with no data, which feels like a "score"
+  // even though the student hasn't seen any questions for that skill yet.
+  const formattedSkills = analytics.skills
+    .filter(s => s.attemptedQuestions > 0)
+    .slice(0, 20)
+    .map(s => ({
+      ...s,
+      formattedSkill: formatLabel(s.skill),
+      displaySkill: abbreviateLabel(formatLabel(s.skill), 12),
+      fullSkill: formatLabel(s.skill)
+    }));
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -108,7 +109,7 @@ export function SkillAnalysisDetailModal({ analytics, open, onClose, onSkillSele
                                 {Math.round(skill.accuracy * 100)}% accuracy, {Math.round(skill.mastery * 100)}% mastery
                               </div>
                             </div>
-                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-base px-3 py-1">
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xl px-6 py-3">
                               Strong
                             </Badge>
                           </div>
@@ -145,7 +146,7 @@ export function SkillAnalysisDetailModal({ analytics, open, onClose, onSkillSele
                                 {Math.round(skill.accuracy * 100)}% accuracy, {skill.mistakeCount} mistakes
                               </div>
                             </div>
-                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300 text-base px-3 py-1">
+                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300 text-xl px-6 py-3">
                               Weak
                             </Badge>
                           </div>
@@ -183,6 +184,7 @@ export function SkillAnalysisDetailModal({ analytics, open, onClose, onSkillSele
                         />
                         <YAxis 
                           tickFormatter={(v) => `${Math.round(v * 100)}%`}
+                          domain={[0, 1]}
                           tick={{ fontSize: 20, fill: 'hsl(var(--foreground))', fontWeight: 400, fontFamily: 'system-ui, -apple-system, sans-serif' }}
                           width={75}
                           label={{ value: 'Accuracy (%)', angle: -90, position: 'left', offset: 10, style: { fontSize: 18, fontWeight: 500, fontFamily: 'system-ui, -apple-system, sans-serif', fill: 'hsl(var(--muted-foreground))', textAnchor: 'middle' } }}
